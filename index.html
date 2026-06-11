@@ -149,20 +149,23 @@ header{
 }
 /* ✅ kontener admin */
 
-#adminPanel{
-  display:block;
-  overflow-anchor:none;
+
+#adminPanel{#admin:block;
+  min-height:100%;
 }
 
 
 /* ✅ główny wrapper */
+
 .admin-container{
   width:100%;
   max-width:900px;
+  margin:0 auto;     /* ✅ KLUCZ */
   display:flex;
   flex-direction:column;
   gap:16px;
 }
+
 
 /* ✅ karta */
 .admin-card{
@@ -237,15 +240,16 @@ header{
   box-shadow:0 4px 12px rgba(0,0,0,0.4);
 }
 
+
 .main{
   position:fixed;
   top:var(--header-h);
   left:var(--sidebar-w);
   right:0;
   bottom:0;
-  overflow:auto;
-  contain: layout;
+  overflow:auto;   /* ✅ zostaje scroll */
 }
+
 
 
 .section{
@@ -256,11 +260,9 @@ header{
 }
 
 
+
 .section.active{
   display:block;
-position:relative;
-  z-index:1;
-
 }
 
 /* 🔘 przycisk */
@@ -397,23 +399,19 @@ input[type="date"] {
 }
 
 
+
 #mapSection{
   position:absolute;
   inset:0;
   overflow:hidden;
-  padding:0; 
-  z-index:0; 
+  padding:0;
+  z-index:0;   /* ✅ dodaj tylko to */
 }
-
-
-
 
 #mapSection .filter-bar {
   margin: 0;       /* ✅ usuwa odstęp */
   border-radius: 0; /* (opcjonalnie – ładniej) */
 }
-
-
 
 #adminBtn{
   display: none;
