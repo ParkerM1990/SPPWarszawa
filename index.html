@@ -2146,121 +2146,79 @@ function renderDevicesList(){
 
 function renderInterwencje(){
 
-  const terminal = (document.getElementById("interTerminalFilter").value || "").toLowerCase()
-  
-const userInput = document.getElementById("interUserFilter")?.value;
-const typeFilter = document.getElementById("interTypeFilter")?.value;
+  const terminal = (document.getElementById("interTerminalFilter").value || "").toLowerCase();
+  const userInput = document.getElementById("interUserFilter")?.value;
+  const typeFilter = document.getElementById("interTypeFilter")?.value;
 
   let html = "";
 
   interwencje.forEach(i => {
 
-  const parts = Array.isArray(i.parts)
-    ? i.parts
-    : (i.parts || "").split(",").map(s => s.trim());
+    const isAdmin = window.currentUser?.role === "admin";
 
-  const isAdmin = window.currentUser?.role === "admin";
+    const key = makeKey(i.device_id, i.structure);
+    const p = allParkomaty[key];
 
-  // ✅ znajdź parkomat
-  const key = makeKey(i.device_id, i.structure);
-  const p = allParkomaty[key];
+    if(!p) return;
+    if(!hasAccessToParkomat(p)) return;
 
-  // ✅ 🔥 NAJPIERW: sprawdź czy parkomat istnieje
-  if(!p) return;
+    if(!isAdmin){
+      const fullName =
+        (window.currentUser?.first_name || "") + " " +
+        (window.currentUser?.last_name || "");
 
-  // ✅ 🔥 POTEM: sprawdź uprawnienia
-  if(!hasAccessToParkomat(p)) return;
+      if(i.user_email !== fullName.trim()) return;
+    }
 
-  // ✅ SERWIS widzi tylko swoje interwencje
-  if(!isAdmin){
+    if(terminal && !(i.device_id || "").toLowerCase().includes(terminal)) return;
+    if(isAdmin && userInput && i.user_email !== userInput) return;
 
-    const fullName =
-      (window.currentUser?.first_name || "") + " " +
-      (window.currentUser?.last_name || "");
+    // ✅ ACTIONS
+    const actions = Array.isArray(i.actions)
+      ? i.actions
+      : (i.actions || "").split(",").map(s => s.trim());
 
-    if(i.user_email !== fullName.trim()) return;
-  }
+    // ✅ PARTS (NOWA LOGIKA)
+    let parts = [];
 
-  // ✅ filtr po numerze parkomatu
-  if(terminal && !(i.device_id || "").toLowerCase().includes(terminal)) return;
+    if(Array.isArray(i.parts)){
+      parts = i.parts;
+    }
+    else if(typeof i.parts === "object" && i.parts !== null){
+      parts = Object.values(i.parts);
+    }
+    else if(typeof i.parts === "string"){
+      try{
+        parts = JSON.parse(i.parts);
+      }catch{
+        parts = [i.parts];
+      }
+    }
 
-  // ✅ filtr po userze (admin)
-  if(isAdmin && userInput && i.user_email !== userInput) return;
+    // ✅ FILTR TYPU
+    if(typeFilter){
+      if(typeFilter === "wymiany" && parts.length === 0) return;
+      if(typeFilter === "operacje" && parts.length > 0) return;
+      if(typeFilter === "serwis" && !actions.some(a => a.toLowerCase().includes("czyszczenie"))) return;
+    }
 
-// ✅ filtr po typie czynności
-if(typeFilter){
+    // ✅ PODZIAŁ
+    const grouped = {
+      operacje: [],
+      serwis: []
+    };
 
-  
-const actions = Array.isArray(i.actions)
-  ? i.actions
-  : (i.actions || "").split(",").map(s => s.trim());
+    actions.forEach(a => {
+      if(!a) return;
 
-/* ✅ UNIWERSALNY PARSER PARTS */
-let parts = [];
+      if(a.toLowerCase().includes("czyszczenie")){
+        grouped.serwis.push(a);
+      }else{
+        grouped.operacje.push(a);
+      }
+    });
 
-if(Array.isArray(i.parts)){
-  parts = i.parts;
-}
-else if(typeof i.parts === "object" && i.parts !== null){
-  parts = Object.values(i.parts);
-}
-else if(typeof i.parts === "string"){
-  try{
-    parts = JSON.parse(i.parts);
-  }catch{
-    parts = [i.parts];
-  }
-}
-
-/* ✅ LICZENIE CZYNNOŚCI */
-actions.forEach(a => {
-  if(!a) return;
-  stats[user].actions[a] = (stats[user].actions[a] || 0) + 1;
-});
-
-/* ✅ 🔥 LICZENIE WYMIAN (TERAZ TYLKO Z PARTS) */
-parts.forEach(p => {
-  if(!p) return;
-  stats[user].wymiany[p] = (stats[user].wymiany[p] || 0) + 1;
-});
-
-
-  const hasType = actions.some(a => {
-    const low = a.toLowerCase();
-
-    
-if(typeFilter === "wymiany"){
-  return parts.length > 0;
-}
-
-    if(typeFilter === "operacje") return !low.startsWith("wymiana") && !low.includes("czyszczenie");
-    if(typeFilter === "serwis") return low.includes("czyszczenie");
-
-    return false;
-  });
-
-  if(!hasType) return;
-}
-const actions = Array.isArray(i.actions)? i.actions : (i.actions || "").split(",").map(s => s.trim());
-
-const grouped = {
-  wymiany: [],
-  operacje: [],
-  serwis: []
-};
-
-actions.forEach(a => {
-  const low = a.toLowerCase();
-
-  if (low.startsWith("wymiana")) {
-    grouped.wymiany.push(a.replace("Wymiana ", ""));
-  } else if (low.includes("czyszczenie")) {
-    grouped.serwis.push(a);
-  } else {
-    grouped.operacje.push(a);
-  }
-});
-  html += `
+    html += `
     <div class="terminal-box">
 
       <b>Parkomat ${i.device_id}</b><br>
@@ -2274,55 +2232,24 @@ actions.forEach(a => {
       </small><br><br>
 
       👤 ${i.user_email}<br>
-      
-<div style="margin-top:8px;">
-  <b>🔧 Czynności:</b>
 
-  ${grouped.wymiany.length ? `
-    
-<div style="margin-top:6px;">
-  <b style="color:#60a5fa;">🔧 Wymiany:</b>
-  <ul style="margin:4px 0 8px 15px; padding:0;">
+      ${grouped.operacje.length ? `
+        <div><b>⚙️ Operacje:</b>
+          <ul>${grouped.operacje.map(a=>`<li>${a}</li>`).join("")}</ul>
+        </div>` : ""}
 
-        ${grouped.wymiany.map(a => `<li>${a}</li>`).join("")}
-      </ul>
-    </div>` : ""}
+      ${grouped.serwis.length ? `
+        <div><b>🧹 Serwis:</b>
+          <ul>${grouped.serwis.map(a=>`<li>${a}</li>`).join("")}</ul>
+        </div>` : ""}
 
-  ${grouped.operacje.length ? `
-    
-<div style="margin-top:6px;">
-  <b style="color:#34d399;">⚙️ Operacje:</b>
-  <ul style="margin:4px 0 8px 15px; padding:0;">
+      ${parts.length ? `
+        <div><b>🔧 Wymienione części:</b>
+          <ul>${parts.map(p=>`<li>${p}</li>`).join("")}</ul>
+        </div>` : ""}
 
-        ${grouped.operacje.map(a => `<li>${a}</li>`).join("")}
-      </ul>
-    </div>` : ""}
-
-  ${grouped.serwis.length ? `
-    
-<div style="margin-top:6px;">
-  <b style="color:#fbbf24;">🧹 Serwis:</b>
-  <ul style="margin:4px 0 8px 15px; padding:0;">
-
-        ${grouped.serwis.map(a => `<li>${a}</li>`).join("")}
-      </ul>
-    </div>` : ""}
-</div>
-
-${parts.length ? `
-  <div style="margin-top:6px;">
-    <b style="color:#f87171;">⚙️ Wymienione części:</b>
-    <ul style="margin:4px 0 8px 15px;">
-      ${parts.map(p => `<li>${p}</li>`).join("")}
-    </ul>
-  </div>
-` : ""}
-
-
-    </div>
-  `;
-});
-
+    </div>`;
+  });
 
   document.getElementById("interwencjeList").innerHTML = html;
 }
