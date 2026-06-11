@@ -1,1 +1,36 @@
+name: Aktualizacja parkomatów
 
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - run: node scripts/update-parkomaty.js
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add parkomaty.json
+
+          if ! git diff --staged --quiet; then
+            git commit -m "Aktualizacja parkomatów"
+            git push
+          else
+            echo "Brak zmian"
+          fi
