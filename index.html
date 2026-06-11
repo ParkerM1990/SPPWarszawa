@@ -1074,19 +1074,14 @@ structBox.innerHTML = Object.keys(map).sort().map(struct => {
   const nodes = [...map[struct]].sort();
 
   return `
-    <div style="
-      border:1px solid #1f2937;
-      border-radius:10px;
-      padding:10px;
-      margin-bottom:8px;
-    ">
+    <div class="struct-box">
 
-      <label style="font-weight:bold;">
+      <label>
         <input type="checkbox" value="${struct}" class="structCheck">
-        ${struct}
+        <b>${struct}</b>
       </label>
 
-      <div style="margin-left:15px;margin-top:6px;display:grid;gap:4px;">
+      <div class="node-list">
         ${nodes.map(n => `
           <label>
             <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
