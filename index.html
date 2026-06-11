@@ -2262,11 +2262,10 @@ function renderInterwencje(){
 
   interwencje.forEach(i => {
 
-    
-const d = parseLocalDate(i.start_date);
-if(!d) return;
+    const d = parseLocalDate(i.start_date);
+    if(!d) return;
 
-    // filtr czasu
+    // ✅ filtr dat
     if(from){
       const f = new Date(from + "T00:00:00");
       if(d < f) return;
@@ -2289,25 +2288,43 @@ if(!d) return;
 
     stats[user].total++;
 
+    // ✅ ACTIONS (czynności)
     const actions = Array.isArray(i.actions)
       ? i.actions
       : (i.actions || "").split(",").map(s => s.trim());
 
-    actions.forEach(a => {
+    // ✅ PARTS (wymienione elementy)
+    let parts = [];
 
-      const low = a.toLowerCase();
-
-      // wszystkie czynności
-      stats[user].actions[a] = (stats[user].actions[a] || 0) + 1;
-
-      // wymiany
-      if(low.startsWith("wymiana")){
-        const item = a.replace("Wymiana ", "");
-        stats[user].wymiany[item] = (stats[user].wymiany[item] || 0) + 1;
+    if(Array.isArray(i.parts)){
+      parts = i.parts;
+    }
+    else if(typeof i.parts === "object" && i.parts !== null){
+      parts = Object.values(i.parts);
+    }
+    else if(typeof i.parts === "string"){
+      try{
+        parts = JSON.parse(i.parts);
+      }catch{
+        parts = [i.parts];
       }
+    }
+
+    // ✅ LICZENIE CZYNNOŚCI
+    actions.forEach(a => {
+      if(!a) return;
+      stats[user].actions[a] = (stats[user].actions[a] || 0) + 1;
     });
+
+    // ✅ 🔥 LICZENIE WYMIAN (TYLKO Z PARTS)
+    parts.forEach(p => {
+      if(!p) return;
+      stats[user].wymiany[p] = (stats[user].wymiany[p] || 0) + 1;
+    });
+
   });
 
+  // ✅ RENDER
   let html = "";
 
   Object.keys(stats).forEach(user => {
@@ -2325,7 +2342,7 @@ if(!d) return;
           ${Object.entries(s.wymiany)
             .sort((a,b)=>b[1]-a[1])
             .map(([k,v])=>`<li>${k}: ${v}</li>`)
-            .join("")}
+            .join("") || "<li>Brak</li>"}
         </ul>
 
         <b>⚙️ Wszystkie czynności:</b>
@@ -2333,7 +2350,7 @@ if(!d) return;
           ${Object.entries(s.actions)
             .sort((a,b)=>b[1]-a[1])
             .map(([k,v])=>`<li>${k}: ${v}</li>`)
-            .join("")}
+            .join("") || "<li>Brak</li>"}
         </ul>
 
       </div>
