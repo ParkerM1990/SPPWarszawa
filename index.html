@@ -148,10 +148,11 @@ header{
   margin-bottom:8px;
 }
 /* ✅ kontener admin */
+
 #adminPanel{
-  display:flex;
-  justify-content:center;
+  display:block;
 }
+
 
 /* ✅ główny wrapper */
 .admin-container{
@@ -244,15 +245,14 @@ header{
   overflow:auto;
 }
 
+
 .section{
-  position:relative;
-  inset:0;
   display:none;
-  overflow:visible;
+  width:100%;
+  padding:16px;
   box-sizing:border-box;
-  padding:16px;  
-  padding-bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom) + 20px);
 }
+
 
 .section.active{
   display:block;
