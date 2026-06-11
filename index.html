@@ -2198,7 +2198,6 @@ function renderInterwencje(){
     if(typeFilter){
       if(typeFilter === "wymiany" && parts.length === 0) return;
       if(typeFilter === "operacje" && parts.length > 0) return;
-      if(typeFilter === "serwis" && !actions.some(a => a.toLowerCase().includes("czyszczenie"))) return;
     }
 
     // ✅ PODZIAŁ
