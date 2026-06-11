@@ -151,6 +151,7 @@ header{
 
 #adminPanel{
   display:block;
+  overflow-anchor:none;
 }
 
 
@@ -243,6 +244,7 @@ header{
   right:0;
   bottom:0;
   overflow:auto;
+  contain: layout;
 }
 
 
@@ -256,6 +258,9 @@ header{
 
 .section.active{
   display:block;
+position:relative;
+  z-index:1;
+
 }
 
 /* 🔘 przycisk */
