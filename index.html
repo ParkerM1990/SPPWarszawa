@@ -248,10 +248,15 @@ header{
 /* ✅ checkbox inline */
 
 .struct-box label{
-  display:inline-flex;
+  display:flex;
   align-items:center;
   gap:10px;
+  width:100%; 
   font-size:14px;
+}
+
+.struct-box label span{
+  white-space:nowrap;      /* 🔥 NIE ŁAM */
 }
 
 
