@@ -276,15 +276,14 @@ header{
 
 
 
+
 .section{
   display:none;
   width:100%;
   padding:16px;
   box-sizing:border-box;
-
-  position:relative;  /* 🔥 KLUCZ */
-  z-index:1;          /* 🔥 NAD MAPĄ */
 }
+
 
 
 
@@ -428,13 +427,15 @@ input[type="date"] {
 
 
 
+
 #mapSection{
   position:absolute;
   inset:0;
   overflow:hidden;
   padding:0;
-  z-index:0;   /* ✅ dodaj tylko to */
+  z-index:-1;   /* 🔥 KLUCZOWA ZMIANA */
 }
+
 
 #mapSection .filter-bar {
   margin: 0;       /* ✅ usuwa odstęp */
