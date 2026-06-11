@@ -150,21 +150,27 @@ header{
 /* ✅ kontener admin */
 
 
-#adminPanel{#admin:block;
+
+#adminPanel{
+  display:block;
   min-height:100%;
+  padding:20px 20px 40px 20px;
 }
+
 
 
 /* ✅ główny wrapper */
 
+
 .admin-container{
   width:100%;
-  max-width:900px;
-  margin:0 auto;     /* ✅ KLUCZ */
+  max-width:1100px;   /* może być szerzej */
+  margin:0;           /* 🔥 usunięcie centrowania */
   display:flex;
   flex-direction:column;
   gap:16px;
 }
+
 
 
 /* ✅ karta */
@@ -173,10 +179,11 @@ header{
   border:1px solid #1f2937;
   border-radius:12px;
   padding:16px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+  box-shadow:0 8px 20px rgba(0,0,0,0.5);
 }
 
 /* ✅ pola */
+
 .admin-card input,
 .admin-card select{
   width:100%;
@@ -184,14 +191,25 @@ header{
   border-radius:8px;
   border:1px solid #1f2937;
   background:#020617;
-  color:white;
+  color:#e5e7eb;              /* 🔥 lepszy kontrast */
+  margin-bottom:12px;         /* 🔥 więcej odstępu */
+  transition:border-color .2s ease; /* 🔥 subtelny efekt */
 }
 
+/* ✅ focus – najważniejsze */
+.admin-card input:focus,
+.admin-card select:focus{
+  border-color:#2563eb;
+  outline:none;
+}
+
+
 /* ✅ grid dla struktur */
+
 .struct-grid{
   display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
-  gap:10px;
+  grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+  gap:16px;
 }
 
 /* ✅ pojedyncza struktura */
@@ -202,20 +220,25 @@ header{
 }
 
 /* ✅ checkbox inline */
+
 .struct-box label{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:10px;
+  font-size:14px;
 }
 
+
 /* ✅ nodes lista */
+
 .node-list{
-  margin-top:6px;
-  margin-left:10px;
+  margin-top:8px;
+  margin-left:12px;  /* 🔥 lepsze wyrównanie */
   display:flex;
   flex-direction:column;
-  gap:4px;
+  gap:6px;
 }
+
 
 /* ✅ przyciski */
 .admin-tabs{
