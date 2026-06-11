@@ -1327,19 +1327,35 @@ async function loadTechnicians(){
 /* ===== LOAD PARKOMATY ===== */
 async function loadParkomaty(){
 
-  const { data, error } = await supabaseClient
-    .from("parkomaty")
-    .select("*");
+  let allData = [];
+  let from = 0;
+  const limit = 1000;
 
-  if(error){
-    console.error(error);
-    return;
+  while(true){
+
+    const { data, error } = await supabaseClient
+      .from("parkomaty")
+      .select("*")
+      .range(from, from + limit - 1);
+
+    if(error){
+      console.error(error);
+      return;
+    }
+
+    allData = allData.concat(data);
+
+    if(data.length < limit){
+      break; // ✅ koniec (ostatnia paczka)
+    }
+
+    from += limit;
   }
 
   const nodeSet = new Set();
   allParkomaty = {};
 
-  data.forEach(p => {
+  allData.forEach(p => {
 
     const key = makeKey(p.id, p.structure);
 
@@ -1355,6 +1371,8 @@ async function loadParkomaty(){
     if(p.node) nodeSet.add(p.node);
   });
 
+  console.log("✅ ZAŁADOWANO:", allData.length);
+
   const nodes = [...nodeSet].sort();
 
   const options =
@@ -1366,6 +1384,7 @@ async function loadParkomaty(){
   document.getElementById("historyNodeFilter").innerHTML = options;
   document.getElementById("deviceNodeFilter").innerHTML = options;
 }
+
 
 /* ===== LOAD ACTIVE ===== */
 async function loadActive(){
