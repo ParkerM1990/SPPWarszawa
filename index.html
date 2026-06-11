@@ -2191,8 +2191,30 @@ const typeFilter = document.getElementById("interTypeFilter")?.value;
 if(typeFilter){
 
   const actions = Array.isArray(i.actions)
-    ? i.actions
-    : (i.actions || "").split(",").map(s => s.trim());
+  ? i.actions
+  : (i.actions || "").split(",").map(s => s.trim());
+
+const parts = Array.isArray(i.parts)
+  ? i.parts
+  : (i.parts || "").split(",").map(s => s.trim());
+
+// ✅ czynności
+actions.forEach(a => {
+
+  const low = a.toLowerCase();
+
+  stats[user].actions[a] = (stats[user].actions[a] || 0) + 1;
+
+});
+
+// ✅ 🔥 NOWE – części
+parts.forEach(p => {
+
+  if(!p) return;
+
+  stats[user].wymiany[p] = (stats[user].wymiany[p] || 0) + 1;
+
+});
 
   const hasType = actions.some(a => {
     const low = a.toLowerCase();
