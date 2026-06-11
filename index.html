@@ -137,6 +137,32 @@ header{
   border-radius:20px;
 }
 
+#adminPanel input,
+#adminPanel select {
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #1f2937;
+  background:#020617;
+  color:white;
+  margin-bottom:8px;
+}
+
+.admin-tab-btn.active{
+  background:#1d4ed8;
+}
+  
+#adminPanel h2 {
+  margin-bottom: 10px;
+}
+
+.admin-box {
+  background:#020617;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #1f2937;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
 
 .main{
   position:fixed;
@@ -325,6 +351,19 @@ input[type="date"] {
   
 .filter-bar{
   margin-bottom:10px;
+}
+
+.admin-tab-btn{
+  background:#1f2937;
+  color:white;
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.admin-tab-btn:hover{
+  background:#374151;
 }
 
 
@@ -675,74 +714,58 @@ Zaloguj
 <div id="interwencjeList"></div>
 </div>
   <div id="adminPanel" class="section">
+
   <h2>👤 Panel admina</h2>
+
+  <!-- ✅ PRZYCISKI -->
+  <div style="display:flex; gap:10px; margin-bottom:15px;">
     
-  <input id="newFirstName" placeholder="Imię" style="
-  padding:8px;
-  border-radius:8px;
-  margin-bottom:8px;
-  width:100%;
-">
+    <button onclick="showAdminTab('addUser')" class="admin-tab-btn">
+      ➕ Dodaj użytkownika
+    </button>
 
-<input id="newLastName" placeholder="Nazwisko" style="
-  padding:8px;
-  border-radius:8px;
-  margin-bottom:8px;
-  width:100%;
-">
-  <input id="newEmail" placeholder="Email" style="
-    padding:8px;
-    border-radius:8px;
-    margin-bottom:8px;
-    width:100%;
-  ">
+    <button onclick="showAdminTab('manageUsers')" class="admin-tab-btn">
+      📋 Zarządzaj użytkownikami
+    </button>
 
-  <input id="newPassword" type="password" placeholder="Hasło" style="
-    padding:8px;
-    border-radius:8px;
-    margin-bottom:8px;
-    width:100%;
-  ">
+  </div>
 
-  <select id="newRole" style="
-    padding:8px;
-    border-radius:8px;
-    margin-bottom:10px;
-    width:100%;
-  ">
-    <option value="serwis">Serwis</option>
-    <option value="admin">Admin</option>
-    
-  </select>
+  <!-- ✅ PODSTRONA 1 -->
+<div id="adminAddUser">
 
-  <h3>Struktury / Miasta</h3>
-  <div id="structuresBox" style="display:grid; gap:6px;"></div>
+  <div class="admin-box">
 
+    <input id="newFirstName" placeholder="Imię">
+    <input id="newLastName" placeholder="Nazwisko">
+    <input id="newEmail" placeholder="Email">
+    <input id="newPassword" type="password" placeholder="Hasło">
 
+    <select id="newRole">
+      <option value="serwis">Serwis</option>
+      <option value="admin">Admin</option>
+    </select>
 
-  <button onclick="createUser()" style="
-    margin-top:12px;
-    background:#16a34a;
-    color:white;
-    border:none;
-    padding:10px;
-    border-radius:8px;
-    width:100%;
-  ">
-    ✅ Utwórz użytkownika
-  </button>
+    <h3>Struktury / Miasta</h3>
+    <div id="structuresBox"></div>
 
-  <pre id="outputJson" style="
-    margin-top:10px;
-    background:#111827;
-    padding:10px;
-    border-radius:8px;
-    font-size:12px;
-    overflow:auto;
-  "></pre>
-<h3>📋 Użytkownicy</h3>
-<div id="usersList"></div>
+    <button onclick="createUser()">✅ Utwórz użytkownika</button>
+
+  </div>
+
 </div>
+
+<!-- ✅ PODSTRONA 2 -->
+<div id="adminManageUsers" style="display:none;">
+
+  <div class="admin-box">
+
+    <h3>📋 Użytkownicy</h3>
+    <div id="usersList"></div>
+
+  </div>
+
+</div>
+
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -995,7 +1018,27 @@ function renderAdminPanel(){
       </div>
     `;
   }).join("");
+ showAdminTab("addUser"); 
 }
+function showAdminTab(tab){
+
+  document.getElementById("adminAddUser").style.display = "none";
+  document.getElementById("adminManageUsers").style.display = "none";
+
+  document.querySelectorAll(".admin-tab-btn")
+    .forEach(b => b.classList.remove("active"));
+
+  if(tab === "addUser"){
+    document.getElementById("adminAddUser").style.display = "block";
+    document.querySelectorAll(".admin-tab-btn")[0].classList.add("active");
+  }
+
+  if(tab === "manageUsers"){
+    document.getElementById("adminManageUsers").style.display = "block";
+    document.querySelectorAll(".admin-tab-btn")[1].classList.add("active");
+  }
+}
+  
   document.addEventListener("change", (e) => {
 
   // ✅ klik na strukturę
