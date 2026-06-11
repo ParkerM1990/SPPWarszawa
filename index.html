@@ -247,17 +247,19 @@ header{
 
 /* ✅ checkbox inline */
 
+
 .struct-box label{
-  display:flex;
+  display:grid;
+  grid-template-columns: 20px auto;  /* 🔥 checkbox + tekst */
   align-items:center;
   gap:10px;
-  width:100%; 
-  font-size:14px;
 }
 
-.struct-box label span{
-  white-space:nowrap;      /* 🔥 NIE ŁAM */
+
+
+.struct-box label span{.struct-box label span /* NIE łamie */
 }
+
 
 
 /* ✅ nodes lista */
@@ -1149,10 +1151,12 @@ structBox.innerHTML = Object.keys(map).sort().map(struct => {
 
     <div class="node-list hidden">
       ${nodes.map(n => `
-        <label>
-          <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
-          ${n}
-        </label>
+       
+<label>
+  <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
+  <span>${n}</span>
+</label>
+
       `).join("")}
     </div>
 
