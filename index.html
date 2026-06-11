@@ -2228,7 +2228,11 @@ parts.forEach(p => {
   const hasType = actions.some(a => {
     const low = a.toLowerCase();
 
-    if(typeFilter === "wymiany") return low.startsWith("wymiana");
+    
+if(typeFilter === "wymiany"){
+  return parts.length > 0;
+}
+
     if(typeFilter === "operacje") return !low.startsWith("wymiana") && !low.includes("czyszczenie");
     if(typeFilter === "serwis") return low.includes("czyszczenie");
 
