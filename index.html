@@ -208,10 +208,30 @@ header{
 /* ✅ grid dla struktur */
 
 
+
 .struct-grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.struct-header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+}
+
+.node-list.hidden{
+  display:none;
+}
+
+.node-list{
+  margin-top:8px;
+  margin-left:20px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
 }
 
 
@@ -1111,24 +1131,27 @@ structBox.innerHTML = Object.keys(map).sort().map(struct => {
   const nodes = [...map[struct]].sort();
 
   return `
-    <div class="struct-box">
+    
+<div class="struct-box">
 
-      <label>
-        <input type="checkbox" value="${struct}" class="structCheck">
-        <b>${struct}</b>
-      </label>
-
-      <div class="node-list">
-        ${nodes.map(n => `
-          <label>
-            <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
-            ${n}
-          </label>
-        `).join("")}
-      </div>
-
+    <div class="struct-header" onclick="toggleStruct(this)">
+      <input type="checkbox" value="${struct}" class="structCheck">
+      <b>${struct}</b>
+      <span class="arrow">▶</span>
     </div>
-  `;
+
+    <div class="node-list hidden">
+      ${nodes.map(n => `
+        <label>
+          <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
+          ${n}
+        </label>
+      `).join("")}
+    </div>
+
+  </div>
+`;
+
 }).join("");
 
  showAdminTab("addUser"); 
@@ -2852,6 +2875,16 @@ async function saveNewPassword(){
 
     window.location.href = "https://parkerm1990.github.io/PZ_Warszawa/";
   }
+}
+
+function toggleStruct(el){
+
+  const list = el.nextElementSibling;
+  const arrow = el.querySelector(".arrow");
+
+  list.classList.toggle("hidden");
+
+  arrow.textContent = list.classList.contains("hidden") ? "▶" : "▼";
 }
 
 
