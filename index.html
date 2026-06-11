@@ -2145,41 +2145,39 @@ function renderHistoryList(){
 
   historyEvents.forEach(r => {
 
-    const key = makeKey(r.id, r.structure);
-    const p = allParkomaty[key];
-    if (!p) return;
-    if (!hasAccessToParkomat(p)) return;
-    if (node && p.node !== node) return;
+  const id = r.id;
+  const location = r.location || "Brak danych";
 
-    const d = parseLocalDate(r.start_date);
-    if (!d) return;
+  if (terminal && !id.toLowerCase().includes(terminal)) return;
+  if (event && r.event_name !== event) return;
 
-    if (from) {
-      const f = new Date(from + "T00:00:00");
-      if (d < f) return;
-    }
+  const d = parseLocalDate(r.start_date);
+  if (!d) return;
 
-    if (to) {
-      const t = new Date(to + "T23:59:59");
-      if (d > t) return;
-    }
+  if (from) {
+    const f = new Date(from + "T00:00:00");
+    if (d < f) return;
+  }
 
-    if (terminal && !r.id.toLowerCase().includes(terminal)) return;
-    if (event && r.event_name !== event) return;
+  if (to) {
+    const t = new Date(to + "T23:59:59");
+    if (d > t) return;
+  }
 
-    html += `
-      <div class="terminal-box">
-        <b>Parkomat ${r.id}</b><br>
+  html += `
+    <div class="terminal-box">
+      <b>Parkomat ${id}</b><br>
+      ${location}<br>
 
-        <div class="event-name">
-          ${r.event_name} (${r.hardware || ""})
-        </div>
-
-        Od: ${r.start_date}<br>
-        Do: ${r.end_date || ""}
+      <div class="event-name">
+        ${r.event_name}
       </div>
-    `;
-  });
+
+      Od: ${r.start_date}<br>
+      Do: ${r.end_date || ""}
+    </div>
+  `;
+});
 
   document.getElementById("historiaList").innerHTML = html;
 }
