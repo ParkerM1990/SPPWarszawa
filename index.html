@@ -807,6 +807,8 @@ Zaloguj
 <select id="techSelect" style="display:none;"></select>
 
 <div id="actionsBox" style="max-height:150px;overflow:auto;"></div>
+  <h4>⚙️ Wymienione podzespoły</h4>
+<div id="partsBox" style="max-height:150px;overflow:auto;"></div>
 
 <button onclick="submitService()" style="
   background:#16a34a;color:white;padding:10px;border:none;border-radius:8px;">
@@ -1189,6 +1191,7 @@ let technicians = [];
 let interwencje = [];
 let currentService = null;
 let deviceOptionsCache = [];
+let serviceParts = [];
 
 /* ===== MAPA ===== */
 let map = L.map('map').setView([52.23218280963405, 21.007884183479632],12);
@@ -1273,11 +1276,21 @@ function isValidEmail(email){
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-
+/* ===== Lista działan serwisu ===== */
 async function loadServiceActions(){
-  const rows = parseCSV(await (await fetch(ACTIONS_URL)).text()).slice(1);
-  serviceActions = rows.map(r => r[0]?.trim()).filter(Boolean);
+
+  const { data, error } = await supabaseClient
+    .from("actions")
+    .select("*");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  serviceActions = data.map(a => a.name);
 }
+
 
 async function loadTechnicians(){
 
@@ -1297,44 +1310,49 @@ async function loadTechnicians(){
   }));
 }
 
+ async function loadParts(){
+
+  const { data, error } = await supabaseClient
+    .from("parts")
+    .select("*");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  serviceParts = data.map(p => p.name);
+} 
 
 /* ===== LOAD PARKOMATY ===== */
 async function loadParkomaty(){
 
-  const res = await fetch(PARKOMATY_URL);
+  const { data, error } = await supabaseClient
+    .from("parkomaty")
+    .select("*");
 
-  if(!res.ok){
-    alert("❌ Nie można wczytać parkomaty.json");
+  if(error){
+    console.error(error);
     return;
   }
-
-  const data = await res.json();
 
   const nodeSet = new Set();
   allParkomaty = {};
 
   data.forEach(p => {
 
-    const id = p.id?.toString().trim();
-    const lat = parseFloat(p.lat);
-    const lng = parseFloat(p.lng);
-    const structure = p.structure?.trim();
-    const node = p.node;
-
-    if(!id || !structure || isNaN(lat) || isNaN(lng)) return;
-
-    const key = makeKey(id, structure);
+    const key = makeKey(p.id, p.structure);
 
     allParkomaty[key] = {
-      id,
-      structure,
-      lat,
-      lng,
-      location: p.location || "",
-      node
+      id: p.id,
+      structure: p.structure,
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+      location: p.location,
+      node: p.node
     };
 
-    if(node) nodeSet.add(node);
+    if(p.node) nodeSet.add(p.node);
   });
 
   const nodes = [...nodeSet].sort();
@@ -1344,50 +1362,62 @@ async function loadParkomaty(){
     nodes.map(n => `<option value="${n}">${n}</option>`).join('');
 
   document.getElementById("nodeFilter").innerHTML = options;
-
-  const activeNode = document.getElementById("activeNodeFilter");
-  if(activeNode) activeNode.innerHTML = options;
-
-  const historyNode = document.getElementById("historyNodeFilter");
-  if(historyNode) historyNode.innerHTML = options;
-
-  const deviceNode = document.getElementById("deviceNodeFilter");
-  if(deviceNode) deviceNode.innerHTML = options;
+  document.getElementById("activeNodeFilter").innerHTML = options;
+  document.getElementById("historyNodeFilter").innerHTML = options;
+  document.getElementById("deviceNodeFilter").innerHTML = options;
 }
 
 /* ===== LOAD ACTIVE ===== */
 async function loadActive(){
-  const rows=parseCSV(await (await fetch(ACTIVE_URL)).text()).slice(1);
 
-  activeEvents={};
-  let count=0;
+  const { data, error } = await supabaseClient
+    .from("active_events")
+    .select("*");
 
- 
-rows.forEach(r=>{
-  const id = r[0]?.trim();
-const structure = r[1]?.trim();
+  if(error){
+    console.error(error);
+    return;
+  }
 
-const key = makeKey(id, structure);
-if (!allParkomaty[key]) return;
+  activeEvents = {};
+  let count = 0;
 
-if (!activeEvents[key]) activeEvents[key] = [];
+  data.forEach(e => {
 
-activeEvents[key].push({
-  name: r[5],
-  code: r[4],
-  hardware: r[7] || "",
-  date: r[3]
-});
+    const key = makeKey(e.id, e.structure);
+
+    if(!allParkomaty[key]) return;
+
+    if(!activeEvents[key]) activeEvents[key] = [];
+
+    activeEvents[key].push({
+      name: e.event_name,
+      code: e.event_code,
+      hardware: e.hardware,
+      date: e.date
+    });
+
     count++;
   });
 
-  document.getElementById("alarmCounter").innerText=count;
+  document.getElementById("alarmCounter").innerText = count;
 }
 
 /* ===== LOAD HISTORY ===== */
 async function loadHistory(){
-  historyEvents=parseCSV(await (await fetch(HISTORY_URL)).text()).slice(1);
+
+  const { data, error } = await supabaseClient
+    .from("history_events")
+    .select("*");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  historyEvents = data;
 }
+  /* ===== LOAD Interwencje ===== */
 async function loadInterwencje(){
 
   const { data, error } = await supabaseClient
@@ -1470,6 +1500,16 @@ techSelect.innerHTML = technicians
 
 
   const box = document.getElementById("actionsBox");
+  
+const partsBox = document.getElementById("partsBox");
+
+partsBox.innerHTML = serviceParts.map(p => `
+  <label style="display:flex;gap:6px;">
+    <input type="checkbox" value="${p}">
+    ${p}
+  </label>
+`).join('');
+
 
   box.innerHTML = serviceActions.map(a => `
     <label style="display:flex;gap:6px;">
@@ -1513,6 +1553,14 @@ techSelect.innerHTML = technicians
 
   // ✅ czynności
   const box = document.getElementById("actionsBox");
+  const partsBox = document.getElementById("partsBox");
+
+partsBox.innerHTML = serviceParts.map(p => `
+  <label style="display:flex;gap:6px;">
+    <input type="checkbox" value="${p}">
+    ${p}
+  </label>
+`).join('');
 
   box.innerHTML = serviceActions.map(a => `
     <label style="display:flex;gap:6px;">
@@ -1552,7 +1600,7 @@ function renderDeviceOptions(list) {
 function closeModal(){
   document.getElementById("serviceModal").style.display = "none";
 }
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyR-RNSAU5ePpx0NpWRoNHMfvANKbxLBFU7a8xmAAaL5s9mHdE774Yxcbriqof4PT6NNw/exec";
+//const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyR-RNSAU5ePpx0NpWRoNHMfvANKbxLBFU7a8xmAAaL5s9mHdE774Yxcbriqof4PT6NNw/exec";
 
 async function submitService(){
 
@@ -1564,6 +1612,9 @@ const user = window.currentUser
 
   const checked = document.querySelectorAll("#actionsBox input:checked");
   const actions = [...checked].map(el => el.value);
+  
+const parts = [...document.querySelectorAll("#partsBox input:checked")]
+  .map(el => el.value);
 
   if(!user){
     alert("❌ Wybierz pracownika");
@@ -1609,7 +1660,9 @@ const user = window.currentUser
         start_date: formatDateForDB(parseLocalDate(event.date)),
         end_date: now,
         user_email: user,
-        actions: actions
+        actions: actions,
+        parts: parts
+
       }]);
 
     if(error){
@@ -1627,20 +1680,48 @@ const user = window.currentUser
 if(currentService.key){
 
   try{
-    await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        type: "close",
-        device_id: p.id,
+
+    // ✅ 1. usuń z active_events
+    const { error: deleteError } = await supabaseClient
+      .from("active_events")
+      .delete()
+      .match({
+        id: p.id,
         structure: p.structure,
         event_code: event.code,
-        date: event.date // ✅ KLUCZOWE
-      })
-    });
+        date: event.date
+      });
+
+    if(deleteError){
+      console.error(deleteError);
+      alert("❌ Błąd usuwania awarii");
+      return;
+    }
+
+    // ✅ 2. dodaj do historii
+    const { error: historyError } = await supabaseClient
+      .from("history_events")
+      .insert([{
+        id: p.id,
+        structure: p.structure,
+        event_name: event.name,
+        event_code: event.code,
+        hardware: event.hardware,
+        start_date: event.date,
+        end_date: now
+      }]);
+
+    if(historyError){
+      console.error(historyError);
+      alert("❌ Błąd zapisu historii");
+    }
+
   }catch(err){
     console.error("Błąd zamykania awarii:", err);
+    alert("❌ Krytyczny błąd");
   }
 }
+    
     // ✅ usuwamy tylko jeśli to awaria
     if(currentService.key){
       activeEvents[key] = activeEvents[key].filter(e => e !== event);
@@ -2072,6 +2153,10 @@ const typeFilter = document.getElementById("interTypeFilter")?.value;
 
   interwencje.forEach(i => {
 
+  const parts = Array.isArray(i.parts)
+    ? i.parts
+    : (i.parts || "").split(",").map(s => s.trim());
+
   const isAdmin = window.currentUser?.role === "admin";
 
   // ✅ znajdź parkomat
@@ -2186,6 +2271,15 @@ actions.forEach(a => {
       </ul>
     </div>` : ""}
 </div>
+
+${parts.length ? `
+  <div style="margin-top:6px;">
+    <b style="color:#f87171;">⚙️ Wymienione części:</b>
+    <ul style="margin:4px 0 8px 15px;">
+      ${parts.map(p => `<li>${p}</li>`).join("")}
+    </ul>
+  </div>
+` : ""}
 
 
     </div>
@@ -2360,6 +2454,7 @@ async function init(){
   await loadActive();
   await loadHistory();
   await loadServiceActions();
+  await loadParts();
   await loadTechnicians();
   await loadInterwencje();
   await loadUsers();
