@@ -1,14 +1,26 @@
-
 <!DOCTYPE html>
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Monitoring Parkomatów</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
+  
+
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
 body{
   margin:0;
   font-family:Arial;
@@ -151,44 +163,11 @@ header{
 
 /* 🔘 przycisk */
 
-.filter-toggle{
-  background:#020617;
-  color:white;
-  border:1px solid #1f2937;
-  border-radius:10px;
-  padding:8px 10px;
-  font-size:14px;
-}
+
 
 
 /* 📦 panel */
-.map-filter-panel{
-  position:absolute;
-  top:10px;
-  left:10px;
-  right:10px;
-  background:#020617;
-  border:1px solid #1f2937;
-  border-radius:12px;
-  padding:10px;
-  display:grid;
-  gap:10px;
 
-  /* ✅ animacja */
-  max-height:0;
-  overflow:hidden;
-  opacity:0;
-  transform:translateY(-10px);
-  transition:0.3s ease;
-  z-index:1000;
-}
-
-/* ✅ stan otwarty */
-.map-filter-panel.open{
-  max-height:200px;
-  opacity:1;
-  transform:translateY(0)
-}
 
 #map{
   position:absolute;
@@ -202,33 +181,37 @@ header{
 /* ✅ NOWY MOBILNY PANEL FILTRÓW */
 .filter-bar.mobile{
   display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr))
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap:8px;
   padding:10px;
   background:#020617;
   border-bottom:1px solid #1f2937;
-  position:sticky;
-  top:0;
-  z-index:10;
+
+  position:relative;  /* ✅ zamiast sticky */
+  z-index:1;           /* ✅ nisko */
 }
+
 
 .filter-item{
   display:flex;
-  align-items:center;
+  flex-direction:row;     /* 🔥 zmiana z column */
+  align-items:center;     /* 🔥 wyśrodkowanie w pionie */
+
   background:#020617;
   border:1px solid #1f2937;
   border-radius:10px;
-  padding:6px 8px;
+  padding:8px;
+  gap:6px;                /* lekko więcej, żeby odsunąć ikonkę */
 }
 
-.map-filter-wrapper{
-  position:relative;
-}
+
 
 .filter-item span{
-  font-size:14px;
-  margin-right:6px;
+  font-size:12px;
+  opacity:0.7;
+  margin-bottom:2px;
 }
+
 
 .filter-item input{
   flex:1;
@@ -275,10 +258,6 @@ select,input{
   padding-top: 0;
 }
 
-#awarieSection .filter-bar,
-#historiaSection .filter-bar{
-  top: 0;
-}
 /* ✅ pełne wymuszenie stylu date */
 input[type="date"] {
   color: #ffffff !important;
@@ -310,24 +289,86 @@ input[type="date"] {
   /* ✅ FIX białego dropdowna na desktopie */
   select {  background-color: #020617;  color: white;}
   
-#awarieSection .filter-bar,
-#historiaSection .filter-bar{
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
-  
 .event-name{
   word-break: break-word;
   overflow-wrap: break-word;
 }
 
-#mapSection{  position:absolute;  inset:0;  overflow:hidden;}
+
+#mapSection{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  padding:0; 
+}
+
+
+
+
+#mapSection .filter-bar {
+  margin: 0;       /* ✅ usuwa odstęp */
+  border-radius: 0; /* (opcjonalnie – ładniej) */
+}
+
+
+
+#adminBtn{
+  display: none;
+}
+  .leaflet-top {
+  top: 60px !important;
+}
+  
+#interwencjeSection{
+  padding-top: 10px;
+}
+  
+.filter-bar{
+  margin-bottom:10px;
+}
+
+
 </style>
 </head>
 
 <body>
+<div id="authBox" style="
+position:fixed;
+inset:0;
+background:#020617;
+display:flex;
+justify-content:center;
+align-items:center;
+z-index:9999;
+">
 
+<div style="
+background:#0b1220;
+padding:20px;
+border-radius:12px;
+width:300px;
+display:flex;
+flex-direction:column;
+gap:10px;
+">
+
+<h3>🔐 Logowanie</h3>
+
+<input id="email" placeholder="Email" style="padding:8px;border-radius:8px;">
+<input id="password" type="password" placeholder="Hasło" style="padding:8px;border-radius:8px;">
+
+<button onclick="login()" style="
+background:#1d4ed8;
+color:white;
+padding:10px;
+border:none;
+border-radius:8px;
+">
+Zaloguj
+</button>
+
+</div>
+</div>
 
 <header>
 
@@ -336,11 +377,44 @@ input[type="date"] {
   </div>
 
   <div class="header-right">
-    <button class="filter-toggle" onclick="toggleFilters()">
-      ⚙️
-    </button>
-    <div id="alarmCounter" onclick="showStats()" style="cursor:pointer;">0
+  
+
+<button id="refreshBtn" onclick="refreshApp()" style="
+  background:#1f2937;
+  color:white;
+  border:none;
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+">
+  <span id="refreshIcon">🔄</span>
+</button>
+
+
+  <div id="alarmCounter" onclick="showStats()" style="cursor:pointer;">
+    0
   </div>
+
+  <div id="userBadge" style="
+    margin-left:10px;
+    background:#1f2937;
+    padding:4px 10px;
+    border-radius:10px;
+    font-size:13px;
+  "></div>
+
+  <button onclick="logout()" style="
+    margin-left:8px;
+    background:#374151;
+    color:white;
+    border:none;
+    padding:6px 10px;
+    border-radius:8px;
+    cursor:pointer;
+  ">
+    🔓
+  </button>
+</div>
 </header>
 <!-- SIDEBAR -->
   <div class="sidebar" id="sidebar">
@@ -367,28 +441,38 @@ input[type="date"] {
         onclick="setActiveNav(this);showSection('devicesSection')">
   🖥️ <span>Urządzenia</span>
 </button>
-    
+
+<button class="nav-btn"
+  title="Interwencje"
+  onclick="setActiveNav(this);showSection('interwencjeSection')">
+  🧰 <span>Interwencje</span>
+</button>
+  
+
+<button id="adminBtn" class="nav-btn"
+  title="Admin"
+  onclick="setActiveNav(this);showSection('adminPanel')">
+  👤 <span>Admin</span>
+</button>
+
+
 </div>
 <div class="main">
 
 <!-- MAPA -->
 <div id="mapSection" class="section active">
-  
-<div class="map-filter-wrapper">
-  <div id="mapFilterPanel" class="map-filter-panel">
 
+  <div class="filter-bar mobile">
     <div class="filter-item">
       <span>📍</span>
       <select id="nodeFilter" onchange="renderAll()">
         <option value="">Wszystkie strefy</option>
       </select>
     </div>
-
   </div>
 
-</div>
-
   <div id="map"></div>
+
 </div>
 
 <!-- AWARIE -->
@@ -458,7 +542,7 @@ input[type="date"] {
       <span>📅</span>
       <input type="text" 
   placeholder="Data od"
-        id="historyDateFrom" onchange="renderHistoryList()"onfocus="this.type='date'"
+        id="historyDateFrom" onchange="renderHistoryList()" onfocus="this.type='date'"
   onblur="if(!this.value)this.type='text'">
     </div>
     
@@ -483,6 +567,8 @@ input[type="date"] {
   </div>
 
   <div id="historiaList"></div>
+
+  
 </div>
 
 
@@ -511,25 +597,555 @@ input[type="date"] {
 
   <div id="devicesList"></div>
 </div>
+<div id="interwencjeSection" class="section">
+<div class="filter-bar mobile">
+
+  <div class="filter-item">
+    <span>📅</span>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; width:100%;">
+      <input type="date" id="statsFrom" onchange="renderInterStats()">
+      <input type="date" id="statsTo" onchange="renderInterStats()">
+      
+      <select onchange="setDateRange(this.value)" style="margin-left:6px;">
+        <option value="">📅 Własny zakres</option>
+        <option value="today">Dziś</option>
+        <option value="week">Ostatnie 7 dni</option>
+        <option value="month">Obecny miesiąc</option>
+        <option value="prevMonth">Poprzedni miesiąc</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="filter-item">
+    <span>🔎</span>
+    <input type="text" id="interTerminalFilter" placeholder="Nr parkomatu"
+           oninput="renderInterwencje()">
+  </div>
+
+  <div class="filter-item">
+    <span>👤</span>
+    <select id="interUserFilter" onchange="renderInterwencje()">
+      <option value="">👤 Wszyscy pracownicy</option>
+    </select>
+  </div>
+
+  <div class="filter-item">
+    <span>⚙️</span>
+    <select id="interTypeFilter" onchange="renderInterwencje()">
+      <option value="">Wszystkie</option>
+      <option value="wymiany">🔧 Wymiany</option>
+      <option value="operacje">⚙️ Operacje</option>
+      <option value="serwis">🧹 Serwis</option>
+    </select>
+  </div>
+
 </div>
+  <button onclick="openManualServiceModal()" style="
+    background:#7c3aed;
+    color:white;
+    padding:10px;
+    border:none;
+    border-radius:10px;
+    margin:10px;
+  ">
+    ➕ Dodaj interwencję
+  </button>
+  <button onclick="renderInterStats()" style="
+  background:#1d4ed8;
+  color:white;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  margin:10px;
+">
+  📊 Statystyki
+</button>
+
+<button onclick="renderInterwencje()" style="
+  background:#374151;
+  color:white;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  margin:10px;
+">
+  📋 Lista
+</button>
+
+<div id="interwencjeList"></div>
+</div>
+  <div id="adminPanel" class="section">
+  <h2>👤 Panel admina</h2>
+    
+  <input id="newFirstName" placeholder="Imię" style="
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:8px;
+  width:100%;
+">
+
+<input id="newLastName" placeholder="Nazwisko" style="
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:8px;
+  width:100%;
+">
+  <input id="newEmail" placeholder="Email" style="
+    padding:8px;
+    border-radius:8px;
+    margin-bottom:8px;
+    width:100%;
+  ">
+
+  <input id="newPassword" type="password" placeholder="Hasło" style="
+    padding:8px;
+    border-radius:8px;
+    margin-bottom:8px;
+    width:100%;
+  ">
+
+  <select id="newRole" style="
+    padding:8px;
+    border-radius:8px;
+    margin-bottom:10px;
+    width:100%;
+  ">
+    <option value="serwis">Serwis</option>
+    <option value="admin">Admin</option>
+    
+  </select>
+
+  <h3>Struktury / Miasta</h3>
+  <div id="structuresBox" style="display:grid; gap:6px;"></div>
+
+
+
+  <button onclick="createUser()" style="
+    margin-top:12px;
+    background:#16a34a;
+    color:white;
+    border:none;
+    padding:10px;
+    border-radius:8px;
+    width:100%;
+  ">
+    ✅ Utwórz użytkownika
+  </button>
+
+  <pre id="outputJson" style="
+    margin-top:10px;
+    background:#111827;
+    padding:10px;
+    border-radius:8px;
+    font-size:12px;
+    overflow:auto;
+  "></pre>
+<h3>📋 Użytkownicy</h3>
+<div id="usersList"></div>
+</div>
+</div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+<!-- ✅ MODAL SERWIS -->
+<div id="serviceModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:5000;
+">
+
+<div style="
+  background:#020617;
+  padding:16px;
+  border-radius:12px;
+  width:90%;
+  max-width:400px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+">
+
+<h3>🔧 Interwencja Serwisowa</h3>
+
+<input
+  type="text" 
+  id="deviceSearchInput"
+  placeholder="🔎 Nr lub adres parkomatu..."
+  oninput="filterDevicesForSelect()"
+  style="padding:8px;border-radius:8px;"
+>
+
+<select id="deviceSelect" style="max-height:150px;overflow:auto;"></select>
+
+<select id="techSelect" style="display:none;"></select>
+
+<div id="actionsBox" style="max-height:150px;overflow:auto;"></div>
+
+<button onclick="submitService()" style="
+  background:#16a34a;color:white;padding:10px;border:none;border-radius:8px;">
+  ✅ Zapisz
+</button>
+
+<button onclick="closeModal()" style="
+  background:#374151;color:white;padding:8px;border:none;border-radius:8px;">
+  Anuluj
+</button>
+
+</div>
+</div>
+  
+<div id="editUserModal" style="
+position:fixed;
+inset:0;
+background:rgba(0,0,0,0.7);
+display:none;
+justify-content:center;
+align-items:center;
+z-index:6000;
+">
+
+<div style="
+background:#020617;
+padding:16px;
+border-radius:12px;
+width:90%;
+max-width:400px;
+display:flex;
+flex-direction:column;
+gap:10px;
+">
+
+<h3>✏️ Edytuj użytkownika</h3>
+
+<input id="editFirstName" placeholder="Imię">
+<input id="editLastName" placeholder="Nazwisko">
+
+<select id="editRole">
+  <option value="serwis">Serwis</option>
+  <option value="admin">Admin</option>
+</select>
+
+<h4>Struktury</h4>
+<div id="editStructures"></div>
+
+<h4>Strefy</h4>
+<div id="editNodes" style="max-height:150px; overflow:auto;"></div>
+
+<button onclick="saveUserEdit()">✅ Zapisz</button>
+<button onclick="closeEditModal()">❌ Anuluj</button>
+
+</div>
+</div>
 <!-- ✅ JS zostaje praktycznie bez zmian -->
 <script>
+const SUPABASE_URL = "https://tiplqkdmgahdeoseahsd.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpcGxxa2RtZ2FoZGVvc2VhaHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MjgyOTIsImV4cCI6MjA5NjUwNDI5Mn0.40_rGmSdhBW2SKGG8wgrGq4--n9qT578StHVzsSD_8w";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.currentUser = null;
+async function login(){
 
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  // ✅ 1. LOGOWANIE
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if(error){
+    console.error("LOGIN ERROR:", error);
+    alert("❌ " + error.message);
+    return;
+  }
+
+  // ✅ UI
+document.getElementById("authBox").style.display = "none";
+
+// ✅ 2. pobierz profil NAJPIERW
+const { data: profile } = await supabaseClient
+  .from("users")
+  .select("*")
+  .eq("id", data.user.id)
+  .single();
+
+window.currentUser = profile;
+  
+
+if(profile && profile.is_active === false){
+  alert("⛔ Konto zablokowane");
+  await supabaseClient.auth.signOut();
+  return;
+}
+
+
+
+// ✅ DOPIERO TERAZ używamy profile
+const fullName = profile?.first_name
+  ? profile.first_name + " " + (profile.last_name || "")
+  : data.user.email;
+
+document.getElementById("userBadge").innerText = "👤 " + fullName.trim();
+  // ✅ 3. ZASTOSUJ ROLĘ
+  applyUserRole(profile);
+
+  // ✅ 4. ŁADUJ DANE
+  await init();
+  
+// ✅ RESET widoku
+showSection('mapSection');
+
+}
+async function checkAuth(){
+
+  const { data } = await supabaseClient.auth.getSession();
+
+  if(data.session){
+
+    document.getElementById("authBox").style.display = "none";
+
+    // ✅ NAJPIERW pobierz profil
+    const { data: profile } = await supabaseClient
+      .from("users")
+      .select("*")
+      .eq("id", data.session.user.id)
+      .single();
+
+    window.currentUser = profile;
+
+    // ✅ dopiero teraz używaj profile
+    const fullName = profile?.first_name
+      ? profile.first_name + " " + (profile.last_name || "")
+      : data.session.user.email;
+
+    document.getElementById("userBadge").innerText = "👤 " + fullName.trim();
+
+    applyUserRole(profile);
+    await init();
+    
+// ✅ RESET widoku
+showSection('mapSection');
+
+  }else{
+    document.getElementById("authBox").style.display = "flex";
+  }
+}
+  
+
+async function logout(){
+
+  await supabaseClient.auth.signOut();
+
+  document.getElementById("authBox").style.display = "flex";
+  document.getElementById("userBadge").innerText = "";
+
+  window.currentUser = null; // ✅ dodatkowe bezpieczeństwo
+
+  showSection('mapSection');
+}
+function renderAdminPanel(){
+
+  const structBox = document.getElementById("structuresBox");
+
+  // ✅ budujemy mapę: structure -> nodes
+  const map = {};
+
+  Object.values(allParkomaty).forEach(p => {
+
+    if(!map[p.structure]){
+      map[p.structure] = new Set();
+    }
+
+    if(p.node){
+      map[p.structure].add(p.node);
+    }
+  });
+
+  // ✅ budowanie HTML
+  structBox.innerHTML = Object.keys(map).sort().map(struct => {
+
+    const nodes = [...map[struct]].sort();
+
+    return `
+      <div style="
+        border:1px solid #1f2937;
+        border-radius:10px;
+        padding:10px;
+        margin-bottom:8px;
+      ">
+
+        <label style="font-weight:bold;">
+          <input type="checkbox" value="${struct}" class="structCheck">
+          ${struct}
+        </label>
+
+        <div style="margin-left:15px;margin-top:6px;display:grid;gap:4px;">
+          ${nodes.map(n => `
+            <label>
+              <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
+              ${n}
+            </label>
+          `).join("")}
+        </div>
+
+      </div>
+    `;
+  }).join("");
+}
+  document.addEventListener("change", (e) => {
+
+  // ✅ klik na strukturę
+  if(e.target.classList.contains("structCheck")){
+
+    const struct = e.target.value;
+    const checked = e.target.checked;
+
+    document
+      .querySelectorAll(`.nodeCheck[data-struct="${struct}"]`)
+      .forEach(cb => cb.checked = checked);
+  }
+});
+
+async function createUser(){
+  
+  const firstName = document.getElementById("newFirstName").value.trim();
+  const lastName = document.getElementById("newLastName").value.trim();
+  const email = document.getElementById("newEmail").value.toLowerCase().trim();
+  const password = document.getElementById("newPassword").value;
+  const role = document.getElementById("newRole").value;
+
+  const structures = [
+    ...document.querySelectorAll(".structCheck:checked")
+  ].map(el => el.value);
+
+  const nodes = [
+    ...document.querySelectorAll(".nodeCheck:checked")
+  ].map(el => el.value);
+
+  if(!email || !password || !firstName){
+  alert("❌ Uzupełnij dane");
+  return;
+}
+
+if(!isValidEmail(email)){
+  alert("❌ Niepoprawny email");
+  return;
+}
+
+// ✅ sprawdź czy email istnieje
+const { data: existingUser } = await supabaseClient
+  .from("users")
+  .select("id")
+  .eq("email", email)
+  .maybeSingle();
+
+if(existingUser){
+  alert("❌ Użytkownik z takim emailem już istnieje");
+  return;
+}
+
+  try{
+
+    // ✅ 1. Tworzenie usera w Supabase Auth
+    
+const { data, error } = await supabaseClient.auth.signUp({
+  email,
+  password
+});
+
+
+    
+
+if(error){
+  console.error("AUTH ERROR:", error);
+  alert("❌ " + error.message);
+  return;
+}
+
+ 
+
+
+    const userId = data.user.id;
+
+    // ✅ 2. Zapis do tabeli users
+    const { error: insertError } = await supabaseClient
+      .from('users')
+      .insert({
+        id: userId,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        role: role,
+        structures: structures,
+        nodes: nodes
+      });
+
+    
+if(insertError){
+  console.error("INSERT ERROR:", insertError);
+  alert("❌ " + insertError.message);
+  return;
+}
+
+
+    alert("✅ Użytkownik utworzony");
+    
+// ✅ reset pól
+document.getElementById("newFirstName").value = "";
+document.getElementById("newLastName").value = "";
+document.getElementById("newEmail").value = "";
+document.getElementById("newPassword").value = "";
+document.getElementById("newRole").value = "serwis";
+
+// ✅ odznacz checkboxy
+document.querySelectorAll(".structCheck").forEach(el => el.checked = false);
+document.querySelectorAll(".nodeCheck").forEach(el => el.checked = false);
+
+  }catch(e){
+    console.error(e);
+    alert("❌ Błąd");
+  }
+  await loadUsers();
+  
+await supabaseClient.auth.signOut();
+alert("✅ Użytkownik utworzony — zaloguj się ponownie");
+
+}
+
+  
 function makeKey(id, structure) {
   return `${id}|${(structure || "").trim().toUpperCase()}`;
 }
 
-function toggleFilters(){
-  const panel = document.getElementById("mapFilterPanel");
-  panel.classList.toggle("open");
+function getNavLink(lat, lng){
+
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if(isIOS){
+    return `maps://?daddr=${lat},${lng}`; // ✅ Apple Maps (pewne)
+  }
+
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; // ✅ stabilne na PC
 }
 
 /* ===== SHEETS ===== */
-const PARKOMATY_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vReREVijVR33ZVud78Iv_oHBEkmDRkQxRxL97KN8gIbs9u5YPtVtvYsaQmHxrf7JWz_pQ_KdCaixonO/pub?gid=0&single=true&output=csv";
+const PARKOMATY_URL="parkomaty.json";
 const ACTIVE_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=0&single=true&output=csv";
 const HISTORY_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=1220391858&single=true&output=csv";
+
+const ACTIONS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=1441340771&single=true&output=csv";
+
+const USERS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=2025072242&single=true&output=csv";
+const INTERWENCJE_URL ="https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=1460522074&single=true&output=csv";
+let serviceActions = [];
+let technicians = [];
+let interwencje = [];
+let currentService = null;
+let deviceOptionsCache = [];
 
 /* ===== MAPA ===== */
 let map = L.map('map').setView([52.23218280963405, 21.007884183479632],12);
@@ -541,6 +1157,64 @@ let allParkomaty={};
 let activeEvents={};
 let historyEvents=[];
 const RED_CODES = ["16384","16385","16386","16900"];
+  
+function hasAccessToParkomat(p){
+
+  // ✅ admin widzi wszystko
+  if(window.currentUser?.role === "admin") return true;
+
+  const userStructures = window.currentUser?.structures || [];
+  const userNodes = window.currentUser?.nodes || [];
+
+  // ✅ brak przypisanych struktur = brak dostępu
+  if(userStructures.length && !userStructures.includes(p.structure)) return false;
+
+  // ✅ brak przypisanych stref = brak dostępu
+  if(userNodes.length && p.node && !userNodes.includes(p.node)) return false;
+
+  return true;
+}
+
+function parseLocalDate(dateStr){
+  if(!dateStr) return null;
+
+  const fixed = dateStr.replace(" ", "T");
+  const d = new Date(fixed);
+
+  return isNaN(d) ? null : d;
+}
+function getLocalDateTime(){
+  const now = new Date();
+
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const d = String(now.getDate()).padStart(2,'0');
+
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
+
+  return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+}
+  function formatDateForDB(date){
+  if(!date) return null;
+
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+
+  const hh = String(date.getHours()).padStart(2,'0');
+  const mm = String(date.getMinutes()).padStart(2,'0');
+  const ss = String(date.getSeconds()).padStart(2,'0');
+
+  return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+}
+function toLocalDateInput(date){
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset*60000);
+  return local.toISOString().slice(0,10);
+}
+
 /* ===== CSV ===== */
 function parseCSV(text){
   const rows=[];
@@ -552,21 +1226,57 @@ function parseCSV(text){
   return rows;
 }
 
+function isValidEmail(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+
+async function loadServiceActions(){
+  const rows = parseCSV(await (await fetch(ACTIONS_URL)).text()).slice(1);
+  serviceActions = rows.map(r => r[0]?.trim()).filter(Boolean);
+}
+
+async function loadTechnicians(){
+
+  const { data, error } = await supabaseClient
+    .from("users")
+    .select("*");
+
+  if(error){
+    console.error("BŁĄD USERS:", error);
+    return;
+  }
+
+  technicians = data.map(u => ({
+    name: `${u.first_name || ""} ${u.last_name || ""}`.trim(),
+    email: u.email,
+    role: u.role
+  }));
+}
+
 
 /* ===== LOAD PARKOMATY ===== */
 async function loadParkomaty(){
 
-  const rows = parseCSV(await (await fetch(PARKOMATY_URL)).text()).slice(1);
+  const res = await fetch(PARKOMATY_URL);
+
+  if(!res.ok){
+    alert("❌ Nie można wczytać parkomaty.json");
+    return;
+  }
+
+  const data = await res.json();
 
   const nodeSet = new Set();
+  allParkomaty = {};
 
-  rows.forEach(r => {
+  data.forEach(p => {
 
-    const id = r[0]?.trim(); 
-    const lng = parseFloat(r[2]);
-    const lat = parseFloat(r[3]);
-    const structure = r[5]?.trim();
-    const node = r[4];
+    const id = p.id?.toString().trim();
+    const lat = parseFloat(p.lat);
+    const lng = parseFloat(p.lng);
+    const structure = p.structure?.trim();
+    const node = p.node;
 
     if(!id || !structure || isNaN(lat) || isNaN(lng)) return;
 
@@ -577,32 +1287,27 @@ async function loadParkomaty(){
       structure,
       lat,
       lng,
-      location: r[1],
+      location: p.location || "",
       node
     };
 
-    nodeSet.add(node);
+    if(node) nodeSet.add(node);
   });
 
-  // ✅ wspólna lista stref
   const nodes = [...nodeSet].sort();
 
   const options =
     `<option value="">Wszystkie strefy</option>` +
     nodes.map(n => `<option value="${n}">${n}</option>`).join('');
 
-  // ✅ MAPA
   document.getElementById("nodeFilter").innerHTML = options;
 
-  // ✅ AWARIE
   const activeNode = document.getElementById("activeNodeFilter");
   if(activeNode) activeNode.innerHTML = options;
 
-  // ✅ HISTORIA
   const historyNode = document.getElementById("historyNodeFilter");
   if(historyNode) historyNode.innerHTML = options;
 
-  // ✅ URZĄDZENIA
   const deviceNode = document.getElementById("deviceNodeFilter");
   if(deviceNode) deviceNode.innerHTML = options;
 }
@@ -640,12 +1345,64 @@ activeEvents[key].push({
 async function loadHistory(){
   historyEvents=parseCSV(await (await fetch(HISTORY_URL)).text()).slice(1);
 }
+async function loadInterwencje(){
 
+  const { data, error } = await supabaseClient
+    .from("interwencje2")
+    .select("*")
+    .order("start_date", { ascending: false });
+
+  if(error){
+    console.error("BŁĄD INTERWENCJI:", error);
+    return;
+  }
+
+  interwencje = data;
+}
+  
 /* ===== UI ===== */
 function showSection(id){
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  if(id==="mapSection") setTimeout(()=>map.invalidateSize(),200);
+
+  let finalId = id;
+
+  // 🔒 blokada admina
+  if(id === "adminPanel"){
+    if(!window.currentUser || window.currentUser.role !== "admin"){
+      console.warn("Brak dostępu do admina");
+      finalId = "mapSection";
+    }
+  }
+
+  // ✅ zmiana sekcji
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById(finalId).classList.add("active");
+
+  // ✅ poprawka aktywnego przycisku
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+
+  const btnMap = {
+    mapSection: "🗺️",
+    awarieSection: "⚠️",
+    historiaSection: "📜",
+    devicesSection: "🖥️",
+    interwencjeSection: "🧰",
+    adminPanel: "👤"
+  };
+
+  const targetBtn = [...document.querySelectorAll(".nav-btn")]
+    .find(b => b.innerText.includes(btnMap[finalId]));
+
+  if(targetBtn){
+    targetBtn.classList.add("active");
+  }
+
+  // ✅ mapa refresh
+  if(finalId==="mapSection"){
+    setTimeout(()=>map.invalidateSize(),200);
+  }
+  if(finalId === "interwencjeSection"){
+  renderInterwencje();
+}
 }
 function setActiveNav(btn){
 
@@ -655,6 +1412,221 @@ function setActiveNav(btn){
 
   btn.classList.add("active");
 }
+
+function openServiceModal(key, event){
+
+  currentService = {key, event};
+
+  const techSelect = document.getElementById("techSelect");
+
+  
+techSelect.innerHTML = technicians
+  .filter(t => t.role === "serwis")
+  .map(t => `<option value="${t.name}">${t.name}</option>`)
+  .join('');
+
+
+  const box = document.getElementById("actionsBox");
+
+  box.innerHTML = serviceActions.map(a => `
+    <label style="display:flex;gap:6px;">
+      <input type="checkbox" value="${a}">
+      ${a}
+    </label>
+  `).join('');
+
+  document.getElementById("serviceModal").style.display = "flex";
+}
+function openManualServiceModal(){
+
+  currentService = {
+    key: null,
+    
+event: {
+  name: "Interwencja serwisowa",
+  date: getLocalDateTime()
+}
+
+  };
+
+  // ✅ lista parkomatów
+  const deviceSelect = document.getElementById("deviceSelect");
+
+  
+deviceOptionsCache = Object.values(allParkomaty)
+  .filter(p => hasAccessToParkomat(p))
+  .sort((a,b)=>a.id.localeCompare(b.id));
+
+renderDeviceOptions(deviceOptionsCache);
+document.getElementById("deviceSearchInput").value = "";
+  // ✅ technicy
+  const techSelect = document.getElementById("techSelect");
+
+  
+techSelect.innerHTML = technicians
+  .map(t => `<option value="${t.name}">${t.name}</option>`)
+  .join('');
+
+
+  // ✅ czynności
+  const box = document.getElementById("actionsBox");
+
+  box.innerHTML = serviceActions.map(a => `
+    <label style="display:flex;gap:6px;">
+      <input type="checkbox" value="${a}">
+      ${a}
+    </label>
+  `).join('');
+
+  document.getElementById("serviceModal").style.display = "flex";
+}
+function renderDeviceOptions(list) {
+
+  const deviceSelect = document.getElementById("deviceSelect");
+
+  deviceSelect.innerHTML = list.map(p => `
+    <option value="${makeKey(p.id,p.structure)}">
+      ${p.id} - ${p.location}
+    </option>
+  `).join('');
+}
+  function filterDevicesForSelect(){
+
+  const search = document
+    .getElementById("deviceSearchInput")
+    .value
+    .toLowerCase();
+
+  const filtered = deviceOptionsCache.filter(p => {
+
+    const text = `${p.id} ${p.location}`.toLowerCase();
+
+    return text.includes(search);
+  });
+
+  renderDeviceOptions(filtered);
+}
+function closeModal(){
+  document.getElementById("serviceModal").style.display = "none";
+}
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyR-RNSAU5ePpx0NpWRoNHMfvANKbxLBFU7a8xmAAaL5s9mHdE774Yxcbriqof4PT6NNw/exec";
+
+async function submitService(){
+
+  
+const user = window.currentUser
+  ? `${window.currentUser.first_name || ""} ${window.currentUser.last_name || ""}`.trim()
+  : "unknown";
+
+
+  const checked = document.querySelectorAll("#actionsBox input:checked");
+  const actions = [...checked].map(el => el.value);
+
+  if(!user){
+    alert("❌ Wybierz pracownika");
+    return;
+  }
+
+  if(actions.length === 0){
+    alert("❌ Wybierz czynności");
+    return;
+  }
+
+  let {key, event} = currentService;
+
+  // ✅ jeśli interwencja ręczna → pobierz parkomat
+  if(!key){
+    key = document.getElementById("deviceSelect").value;
+  }
+
+  const p = allParkomaty[key];
+
+  if(!p){
+    alert("❌ Nie znaleziono parkomatu");
+    return;
+  }
+
+  // ✅ 🔥 KLUCZ – SPRAWDZENIE UPRAWNIEŃ
+  if(!hasAccessToParkomat(p)){
+    alert("❌ Brak uprawnień do tego parkomatu");
+    return;
+  }
+
+  const now = getLocalDateTime();
+
+  try{
+
+    const { error } = await supabaseClient
+      .from("interwencje2")
+      .insert([{
+        device_id: p.id,
+        structure: p.structure,
+        location: p.location,
+        event_name: event.name,
+        start_date: formatDateForDB(parseLocalDate(event.date)),
+        end_date: now,
+        user_email: user,
+        actions: actions
+      }]);
+
+    if(error){
+      console.error(error);
+      alert("❌ Błąd zapisu do Supabase");
+      return;
+    }
+
+    // ✅ komunikat
+    if(currentService.key){
+      alert("✅ Awaria zamknięta");
+    }else{
+      alert("✅ Interwencja zapisana");
+    }
+if(currentService.key){
+
+  try{
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "close",
+        device_id: p.id,
+        structure: p.structure,
+        event_code: event.code,
+        date: event.date // ✅ KLUCZOWE
+      })
+    });
+  }catch(err){
+    console.error("Błąd zamykania awarii:", err);
+  }
+}
+    // ✅ usuwamy tylko jeśli to awaria
+    if(currentService.key){
+      activeEvents[key] = activeEvents[key].filter(e => e !== event);
+
+      if(activeEvents[key].length === 0){
+        delete activeEvents[key];
+      }
+    }
+
+    closeModal();
+
+    // ✅ refresh
+    renderAll();
+
+    if(currentService.key){
+      showSection('mapSection');
+    }else{
+      showSection('interwencjeSection');
+    }
+
+    await loadInterwencje();
+    renderInterwencje();
+
+  }catch(e){
+    alert("❌ Błąd zapisu");
+    console.error(e);
+  }
+}
+
 /* ===== MAP + AUTO CENTER ===== */
 function renderMarkers(){
 
@@ -669,7 +1641,7 @@ Object.keys(activeEvents).forEach(key => {
 
   const p = allParkomaty[key];
   if(!p) return;
-
+  if(!hasAccessToParkomat(p)) return;
   if(node && p.node!==node) return;
 
   let popup = `<b>Parkomat ${p.id}</b><br>${p.location}<br><br>`;
@@ -778,7 +1750,7 @@ function renderActiveList(){
   const node = document.getElementById("activeNodeFilter").value;
   const from = document.getElementById("activeDateFrom").value;
   const to = document.getElementById("activeDateTo").value;
-  const terminal = document.getElementById("activeTerminalFilter").value.trim();
+  const terminal = (document.getElementById("activeTerminalFilter").value || "").toLowerCase();
   const event = document.getElementById("activeEventFilter").value;
 
   let html = "";
@@ -787,7 +1759,7 @@ function renderActiveList(){
 
     const p = allParkomaty[key];
     if(!p) return;
-
+    if(!hasAccessToParkomat(p)) return;
     const id = p.id;
 
     const filtered = activeEvents[key].filter(e => {
@@ -796,20 +1768,35 @@ function renderActiveList(){
       const raw = e.date;
       if(!raw) return false;
 
-      const d = new Date(raw.replace(" ", "T"));
+      
 
-      // ✅ filtr OD
-      if(from && d < new Date(from)) return false;
+
+const d = parseLocalDate(raw);
+if(!d) return false;
+
+
+// ✅ blokada śmieciowych dat
+if(!raw || isNaN(d) || raw.length < 10) return false;
+
+
+
+      
+// ✅ filtr OD (początek dnia)
+if(from){
+  const fromDate = new Date(from + "T00:00:00");
+
+  if(d < fromDate) return false;
+}
+
 
       // ✅ filtr DO (cały dzień!)
       if(to){
-        const toDate = new Date(to);
-        toDate.setHours(23,59,59,999);
+        const toDate = new Date(to + "T23:59:59");
         if(d > toDate) return false;
       }
 
       // ✅ filtr po numerze
-      if(terminal && !id.includes(terminal)) return false;
+      if(terminal && !id.toLowerCase().includes(terminal)) return false;
 
       // ✅ filtr po typie zdarzenia
       if(event && e.name !== event) return false;
@@ -833,12 +1820,26 @@ filtered.forEach(e => {
   html += `
     • <b>${e.hardware || "Inne"}</b> – ${e.name}<br>
     <small>${e.date}</small><br>
+
+    <button onclick="openServiceModal('${key}', ${JSON.stringify(e).replace(/"/g,'&quot;')})"
+      style="
+        margin-top:6px;
+        background:#2563eb;
+        color:white;
+        border:none;
+        padding:5px 8px;
+        border-radius:6px;
+      ">
+      🔧 Usuń awarię
+    </button>
+
+    <br><br>
   `;
+});
 
-    });
-
-    html += `</div>`;
-  });
+// ✅ ZAMKNIĘCIE BOXA
+html += `</div>`;
+});
 
   document.getElementById("awarieList").innerHTML = html;
 }
@@ -848,7 +1849,7 @@ function renderHistoryList(){
   const node = document.getElementById("historyNodeFilter").value;
   const from=document.getElementById("historyDateFrom").value;
   const to=document.getElementById("historyDateTo").value;
-  const terminal=document.getElementById("historyTerminalFilter").value.trim();
+  const terminal = (document.getElementById("historyTerminalFilter").value || "").toLowerCase()
   const event=document.getElementById("historyEventFilter").value;
 
   let html="";
@@ -865,16 +1866,35 @@ const key = makeKey(r[0], r[1]); // ✅ r[1] = structure
 
 const p = allParkomaty[key];
 if (!p) return;
-
+if(!hasAccessToParkomat(p)) return;
 if(node && p.node !== node) return;
 
 
 
-  const d=new Date(r[3]);
+  
+const raw = r[3];
 
-  if(from && d<new Date(from)) return;
-  if(to && d>new Date(to)) return;
-  if(terminal && !r[0].includes(terminal)) return;
+
+const d = parseLocalDate(raw);
+if(!d) return false;
+
+
+if(!raw || isNaN(d) || raw.length < 10) return;
+
+
+  
+if(from){
+  const f = new Date(from + "T00:00:00");
+  if(d < f) return;
+}
+
+  
+if(to){
+  const toDate = new Date(to + "T23:59:59");
+  if(d > toDate) return;
+}
+
+  if(terminal && !r[0].toLowerCase().includes(terminal)) return;
   if(event && r[5]!==event) return;
 
   html+=`
@@ -904,20 +1924,25 @@ function renderDevicesList(){
 
   let html = "";
 
-  Object.values(allParkomaty)
-    .sort((a,b)=>a.id.localeCompare(b.id))
-    .forEach(p=>{
+ Object.values(allParkomaty)
+  .sort((a,b)=>a.id.localeCompare(b.id))
+  .forEach(p=>{
 
-      const text = `
-        ${p.id}
-        ${p.location}
-      `.toLowerCase();
+    // ✅ 🔥 NAJWAŻNIEJSZE – filtr uprawnień
+    if(!hasAccessToParkomat(p)) return;
 
-      if(search && !text.includes(search)) return;
-      if(node && p.node !== node) return;
-      const key = makeKey(p.id, p.structure);
+    const text = `
+      ${p.id}
+      ${p.location}
+    `.toLowerCase();
 
-      const alarms = activeEvents[key]?.length || 0;
+    if(search && !text.includes(search)) return;
+    if(node && p.node !== node) return;
+
+    const key = makeKey(p.id, p.structure);
+
+    const alarms = activeEvents[key]?.length || 0;
+
 
       html += `
   <div class="terminal-box">
@@ -976,6 +2001,247 @@ function renderDevicesList(){
 
   document.getElementById("devicesList").innerHTML = html;
 }
+  function populateUserFilter(){
+
+  const select = document.getElementById("interUserFilter");
+  if(!select) return;
+
+  // zbierz unikalnych użytkowników
+  const users = [...new Set(
+    interwencje
+      .map(i => i.user_email)
+      .filter(Boolean)
+  )].sort();
+
+  select.innerHTML =
+    `<option value="">👤 Wszyscy pracownicy</option>` +
+    users.map(u => `<option value="${u}">${u}</option>`).join('');
+}
+
+function renderInterwencje(){
+
+  const terminal = (document.getElementById("interTerminalFilter").value || "").toLowerCase()
+  
+const userInput = document.getElementById("interUserFilter")?.value;
+const typeFilter = document.getElementById("interTypeFilter")?.value;
+
+  let html = "";
+
+  interwencje.forEach(i => {
+
+  const isAdmin = window.currentUser?.role === "admin";
+
+  // ✅ znajdź parkomat
+  const key = makeKey(i.device_id, i.structure);
+  const p = allParkomaty[key];
+
+  // ✅ 🔥 NAJPIERW: sprawdź czy parkomat istnieje
+  if(!p) return;
+
+  // ✅ 🔥 POTEM: sprawdź uprawnienia
+  if(!hasAccessToParkomat(p)) return;
+
+  // ✅ SERWIS widzi tylko swoje interwencje
+  if(!isAdmin){
+
+    const fullName =
+      (window.currentUser?.first_name || "") + " " +
+      (window.currentUser?.last_name || "");
+
+    if(i.user_email !== fullName.trim()) return;
+  }
+
+  // ✅ filtr po numerze parkomatu
+  if(terminal && !(i.device_id || "").toLowerCase().includes(terminal)) return;
+
+  // ✅ filtr po userze (admin)
+  if(isAdmin && userInput && i.user_email !== userInput) return;
+
+// ✅ filtr po typie czynności
+if(typeFilter){
+
+  const actions = Array.isArray(i.actions)
+    ? i.actions
+    : (i.actions || "").split(",").map(s => s.trim());
+
+  const hasType = actions.some(a => {
+    const low = a.toLowerCase();
+
+    if(typeFilter === "wymiany") return low.startsWith("wymiana");
+    if(typeFilter === "operacje") return !low.startsWith("wymiana") && !low.includes("czyszczenie");
+    if(typeFilter === "serwis") return low.includes("czyszczenie");
+
+    return false;
+  });
+
+  if(!hasType) return;
+}
+const actions = Array.isArray(i.actions)? i.actions : (i.actions || "").split(",").map(s => s.trim());
+
+const grouped = {
+  wymiany: [],
+  operacje: [],
+  serwis: []
+};
+
+actions.forEach(a => {
+  const low = a.toLowerCase();
+
+  if (low.startsWith("wymiana")) {
+    grouped.wymiany.push(a.replace("Wymiana ", ""));
+  } else if (low.includes("czyszczenie")) {
+    grouped.serwis.push(a);
+  } else {
+    grouped.operacje.push(a);
+  }
+});
+  html += `
+    <div class="terminal-box">
+
+      <b>Parkomat ${i.device_id}</b><br>
+      ${i.location}<br><br>
+
+      <b>${i.event_name}</b><br>
+
+      <small>
+        Od: ${i.start_date}<br>
+        Do: ${i.end_date}
+      </small><br><br>
+
+      👤 ${i.user_email}<br>
+      
+<div style="margin-top:8px;">
+  <b>🔧 Czynności:</b>
+
+  ${grouped.wymiany.length ? `
+    
+<div style="margin-top:6px;">
+  <b style="color:#60a5fa;">🔧 Wymiany:</b>
+  <ul style="margin:4px 0 8px 15px; padding:0;">
+
+        ${grouped.wymiany.map(a => `<li>${a}</li>`).join("")}
+      </ul>
+    </div>` : ""}
+
+  ${grouped.operacje.length ? `
+    
+<div style="margin-top:6px;">
+  <b style="color:#34d399;">⚙️ Operacje:</b>
+  <ul style="margin:4px 0 8px 15px; padding:0;">
+
+        ${grouped.operacje.map(a => `<li>${a}</li>`).join("")}
+      </ul>
+    </div>` : ""}
+
+  ${grouped.serwis.length ? `
+    
+<div style="margin-top:6px;">
+  <b style="color:#fbbf24;">🧹 Serwis:</b>
+  <ul style="margin:4px 0 8px 15px; padding:0;">
+
+        ${grouped.serwis.map(a => `<li>${a}</li>`).join("")}
+      </ul>
+    </div>` : ""}
+</div>
+
+
+    </div>
+  `;
+});
+
+
+  document.getElementById("interwencjeList").innerHTML = html;
+}
+ function renderInterStats(){
+
+  const from = document.getElementById("statsFrom").value;
+  const to = document.getElementById("statsTo").value;
+
+  let stats = {};
+
+  interwencje.forEach(i => {
+
+    
+const d = parseLocalDate(i.start_date);
+if(!d) return;
+
+    // filtr czasu
+    if(from){
+      const f = new Date(from + "T00:00:00");
+      if(d < f) return;
+    }
+
+    if(to){
+      const t = new Date(to + "T23:59:59");
+      if(d > t) return;
+    }
+
+    const user = i.user_email || "Brak";
+
+    if(!stats[user]){
+      stats[user] = {
+        total: 0,
+        actions: {},
+        wymiany: {}
+      };
+    }
+
+    stats[user].total++;
+
+    const actions = Array.isArray(i.actions)
+      ? i.actions
+      : (i.actions || "").split(",").map(s => s.trim());
+
+    actions.forEach(a => {
+
+      const low = a.toLowerCase();
+
+      // wszystkie czynności
+      stats[user].actions[a] = (stats[user].actions[a] || 0) + 1;
+
+      // wymiany
+      if(low.startsWith("wymiana")){
+        const item = a.replace("Wymiana ", "");
+        stats[user].wymiany[item] = (stats[user].wymiany[item] || 0) + 1;
+      }
+    });
+  });
+
+  let html = "";
+
+  Object.keys(stats).forEach(user => {
+
+    const s = stats[user];
+
+    html += `
+      <div class="terminal-box">
+
+        <b>👤 ${user}</b><br>
+        <small>Interwencji: ${s.total}</small><br><br>
+
+        <b>🔧 Wymiany:</b>
+        <ul>
+          ${Object.entries(s.wymiany)
+            .sort((a,b)=>b[1]-a[1])
+            .map(([k,v])=>`<li>${k}: ${v}</li>`)
+            .join("")}
+        </ul>
+
+        <b>⚙️ Wszystkie czynności:</b>
+        <ul>
+          ${Object.entries(s.actions)
+            .sort((a,b)=>b[1]-a[1])
+            .map(([k,v])=>`<li>${k}: ${v}</li>`)
+            .join("")}
+        </ul>
+
+      </div>
+    `;
+  });
+
+  document.getElementById("interwencjeList").innerHTML = html;
+}
+ 
   /* ===== STATYSTYKI ===== */
 function showStats(){
 
@@ -998,7 +2264,45 @@ function showStats(){
 🔥 Wszystkie awarie: ${totalAlarms}`
   );
 }
-``
+function setDateRange(type){
+
+  const from = document.getElementById("statsFrom");
+  const to = document.getElementById("statsTo");
+
+  const now = new Date();
+
+  if(type === "today"){
+    from.value = toLocalDateInput(now);
+    to.value = toLocalDateInput(now);
+  }
+
+  if(type === "week"){
+    const past = new Date();
+    past.setDate(now.getDate() - 7);
+
+    from.value = toLocalDateInput(past);
+    to.value = toLocalDateInput(now);
+  }
+
+  if(type === "month"){
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    from.value = toLocalDateInput(start);
+    to.value = toLocalDateInput(now);
+  }
+
+  if(type === "prevMonth"){
+    const start = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    from.value = toLocalDateInput(start);
+    to.value = toLocalDateInput(end);
+  }
+
+  renderInterStats();
+}
+
+  
 /* ===== MASTER ===== */
 function renderAll(){
   renderMarkers();
@@ -1012,40 +2316,315 @@ async function init(){
   await loadParkomaty();
   await loadActive();
   await loadHistory();
-
+  await loadServiceActions();
+  await loadTechnicians();
+  await loadInterwencje();
+  await loadUsers();
+  populateUserFilter();
   populateActiveEventFilter();
   populateEventFilter();
-
+  renderAdminPanel();
   renderAll();
 }
 
-init();
+const hash = window.location.hash;
 
+if(hash.includes("type=recovery")){
+  handleRecovery();
+}else{
+  checkAuth();
+}
+
+  
 // zamykanie po wyborze
 
-setTimeout(()=>{
-  const nodeFilter = document.getElementById("nodeFilter");
+function applyUserRole(profile){
 
-  if(nodeFilter){
-    nodeFilter.addEventListener("change", ()=>{
-      document.getElementById("mapFilterPanel").classList.remove("open");
-    });
+  if(!profile){
+    console.warn("Brak profilu usera");
+    return;
   }
-}, 0);
 
+  console.log("ROLE:", profile.role);
 
-// zamykanie po kliknięciu poza panel
+  const adminBtn = document.getElementById("adminBtn");
+  const userFilter = document.getElementById("interUserFilter");
 
-document.addEventListener("click", (e)=>{
-  const panel = document.getElementById("mapFilterPanel");
-  const button = document.querySelector(".filter-toggle");
+  if(profile.role === "admin"){
+    // ✅ ADMIN
+    if(adminBtn) adminBtn.style.display = "flex";
 
-  if (!panel || !button) return;
+    if(userFilter) userFilter.style.display = "block"; // filtr widoczny
 
-  if (!panel.contains(e.target) && !button.contains(e.target)) {
-    panel.classList.remove("open");
+  }else{
+    // ✅ SERWIS
+    if(adminBtn) adminBtn.style.display = "none";
+
+    if(userFilter) userFilter.style.display = "none"; // filtr ukryty
   }
-});
+
+}
+
+
+let isRefreshing = false;
+
+
+async function refreshApp(){
+
+  if(isRefreshing) return;
+  isRefreshing = true;
+
+  const icon = document.getElementById("refreshIcon");
+  if(icon) icon.innerText = "⏳";
+
+  await loadParkomaty();
+  await loadActive();
+  await loadHistory();
+  await loadInterwencje();
+
+  renderAll();
+
+  if(icon) icon.innerText = "🔄";
+
+  isRefreshing = false;
+}
+
+let editingUserId = null;
+
+/* ===== LOAD USERS ===== */
+async function loadUsers(){
+
+  const { data, error } = await supabaseClient
+    .from("users")
+    .select("*");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  renderUsers(data);
+}
+
+/* ===== LIST ===== */
+function renderUsers(users){
+
+  document.getElementById("usersList").innerHTML = users.map(u => {
+
+    const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim();
+
+    return `
+    <div class="terminal-box">
+
+      <b>${fullName || u.email}</b><br>
+      ${u.email}<br>
+      <small>Rola: ${u.role}</small><br>
+      <small>Status: ${u.is_active !== false ? "✅ aktywny" : "⛔ zablokowany"}</small><br><br>
+
+      <button onclick="openEditUser('${u.id}')"
+        style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:6px;">
+        ✏️ Edytuj
+      </button>
+
+      <button onclick="toggleUser('${u.id}', ${u.is_active !== false})"
+        style="background:#f59e0b;color:white;border:none;padding:6px 10px;border-radius:6px;">
+        ${u.is_active !== false ? "🚫 Zablokuj" : "✅ Odblokuj"}
+      </button>
+
+      <button onclick="resetPassword('${u.email}')"
+        style="background:#7c3aed;color:white;border:none;padding:6px 10px;border-radius:6px;">
+        🔑 Hasło
+      </button>
+
+      <button onclick="deleteUser('${u.id}')"
+        style="background:#dc2626;color:white;border:none;padding:6px 10px;border-radius:6px;">
+        🗑️ Usuń
+      </button>
+
+    </div>
+    `;
+  }).join("");
+}
+
+/* ===== EDIT OPEN ===== */
+async function openEditUser(id){
+
+  editingUserId = id;
+
+  const { data } = await supabaseClient
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  document.getElementById("editFirstName").value = data.first_name || "";
+  document.getElementById("editLastName").value = data.last_name || "";
+  document.getElementById("editRole").value = data.role;
+
+  const structures = [...new Set(
+    Object.values(allParkomaty).map(p => p.structure)
+  )];
+
+  document.getElementById("editStructures").innerHTML =
+    structures.map(s => `
+      <label>
+        <input type="checkbox" value="${s}"
+        ${data.structures?.includes(s) ? "checked" : ""}>
+        ${s}
+      </label>
+    `).join("");
+
+  const nodes = [...new Set(
+    Object.values(allParkomaty).map(p => p.node).filter(Boolean)
+  )];
+
+  document.getElementById("editNodes").innerHTML =
+    nodes.map(n => `
+      <label>
+        <input type="checkbox" value="${n}"
+        ${data.nodes?.includes(n) ? "checked" : ""}>
+        ${n}
+      </label>
+    `).join("");
+
+  document.getElementById("editUserModal").style.display="flex";
+}
+
+/* ===== SAVE ===== */
+async function saveUserEdit(){
+
+  const first = document.getElementById("editFirstName").value;
+  const last = document.getElementById("editLastName").value;
+  const role = document.getElementById("editRole").value;
+
+  const structures = [...document.querySelectorAll("#editStructures input:checked")]
+    .map(el => el.value);
+
+  const nodes = [...document.querySelectorAll("#editNodes input:checked")]
+    .map(el => el.value);
+
+  await supabaseClient
+    .from("users")
+    .update({
+      first_name: first,
+      last_name: last,
+      role: role,
+      structures: structures,
+      nodes: nodes
+    })
+    .eq("id", editingUserId);
+
+  closeEditModal();
+  loadUsers();
+}
+
+function closeEditModal(){
+  document.getElementById("editUserModal").style.display="none";
+}
+
+/* ===== BLOCK ===== */
+async function toggleUser(id, active){
+
+  await supabaseClient
+    .from("users")
+    .update({ is_active: !active })
+    .eq("id", id);
+
+  loadUsers();
+}
+
+/* ===== DELETE ===== */
+async function deleteUser(id){
+
+  if(!confirm("Usunąć użytkownika?")) return;
+
+  await supabaseClient
+    .from("users")
+    .delete()
+    .eq("id", id);
+
+  loadUsers();
+}
+
+/* ===== RESET PASSWORD ===== */
+async function resetPassword(email){
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://parkerm1990.github.io/PZ_Warszawa/"
+  });
+
+  if(error){
+    alert("❌ Błąd");
+  }else{
+    alert("✅ Mail resetu wysłany");
+  }
+}
+  function handleRecovery(){
+
+  const hash = window.location.hash;
+
+  if(hash.includes("type=recovery")){
+
+    document.body.innerHTML = `
+      <div style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+        background:#020617;
+        color:white;
+      ">
+
+        <div style="
+          background:#0b1220;
+          padding:20px;
+          border-radius:12px;
+          width:300px;
+          display:flex;
+          flex-direction:column;
+          gap:10px;
+        ">
+          <h3>🔑 Ustaw nowe hasło</h3>
+
+          <input id="newPass" type="password" placeholder="Nowe hasło">
+
+          <button onclick="saveNewPassword()" style="
+            background:#16a34a;
+            color:white;
+            padding:10px;
+            border:none;
+            border-radius:8px;
+          ">
+            Zmień hasło
+          </button>
+        </div>
+      </div>
+    `;
+  }
+}
+async function saveNewPassword(){
+
+  const password = document.getElementById("newPass").value;
+
+  if(!password){
+    alert("❌ Wpisz hasło");
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.updateUser({
+    password: password
+  });
+
+  if(error){
+    console.error(error);
+    alert("❌ Błąd: " + error.message);
+  }else{
+    alert("✅ Hasło zmienione!");
+
+    window.location.href = "https://parkerm1990.github.io/PZ_Warszawa/";
+  }
+}
+
 
 
 </script>
