@@ -147,6 +147,77 @@ header{
   color:white;
   margin-bottom:8px;
 }
+/* ✅ kontener admin */
+#adminPanel{
+  display:flex;
+  justify-content:center;
+}
+
+/* ✅ główny wrapper */
+.admin-container{
+  width:100%;
+  max-width:900px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+/* ✅ karta */
+.admin-card{
+  background:#020617;
+  border:1px solid #1f2937;
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* ✅ pola */
+.admin-card input,
+.admin-card select{
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #1f2937;
+  background:#020617;
+  color:white;
+}
+
+/* ✅ grid dla struktur */
+.struct-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+  gap:10px;
+}
+
+/* ✅ pojedyncza struktura */
+.struct-box{
+  border:1px solid #1f2937;
+  border-radius:10px;
+  padding:10px;
+}
+
+/* ✅ checkbox inline */
+.struct-box label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* ✅ nodes lista */
+.node-list{
+  margin-top:6px;
+  margin-left:10px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+/* ✅ przyciski */
+.admin-tabs{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
 
 .admin-tab-btn.active{
   background:#1d4ed8;
@@ -714,56 +785,63 @@ Zaloguj
 </div>
   <div id="adminPanel" class="section">
 
-  <h2>👤 Panel admina</h2>
+  <div class="admin-container">
 
-  <!-- ✅ PRZYCISKI -->
-  <div style="display:flex; gap:10px; margin-bottom:15px;">
-    
-    <button onclick="showAdminTab('addUser')" class="admin-tab-btn">
-      ➕ Dodaj użytkownika
-    </button>
+    <h2>👤 Panel admina</h2>
 
-    <button onclick="showAdminTab('manageUsers')" class="admin-tab-btn">
-      📋 Zarządzaj użytkownikami
-    </button>
+    <div class="admin-tabs">
+      <button onclick="showAdminTab('addUser')" class="admin-tab-btn">
+        ➕ Dodaj użytkownika
+      </button>
+
+      <button onclick="showAdminTab('manageUsers')" class="admin-tab-btn">
+        📋 Zarządzaj użytkownikami
+      </button>
+    </div>
+
+    <!-- ✅ DODAWANIE -->
+    <div id="adminAddUser">
+
+      <div class="admin-card">
+
+        <input id="newFirstName" placeholder="Imię">
+        <input id="newLastName" placeholder="Nazwisko">
+        <input id="newEmail" placeholder="Email">
+        <input id="newPassword" type="password" placeholder="Hasło">
+
+        <select id="newRole">
+          <option value="serwis">Serwis</option>
+          <option value="admin">Admin</option>
+        </select>
+
+      </div>
+
+      <div class="admin-card">
+        <h3>📍 Struktury / Miasta</h3>
+        <div id="structuresBox" class="struct-grid"></div>
+      </div>
+
+      <button onclick="createUser()" style="
+        background:#16a34a;
+        color:white;
+        padding:12px;
+        border:none;
+        border-radius:10px;
+      ">
+        ✅ Utwórz użytkownika
+      </button>
+
+    </div>
+
+    <!-- ✅ LISTA -->
+    <div id="adminManageUsers" style="display:none;">
+      <div class="admin-card">
+        <h3>📋 Użytkownicy</h3>
+        <div id="usersList"></div>
+      </div>
+    </div>
 
   </div>
-
-  <!-- ✅ PODSTRONA 1 -->
-<div id="adminAddUser">
-
-  <div class="admin-box">
-
-    <input id="newFirstName" placeholder="Imię">
-    <input id="newLastName" placeholder="Nazwisko">
-    <input id="newEmail" placeholder="Email">
-    <input id="newPassword" type="password" placeholder="Hasło">
-
-    <select id="newRole">
-      <option value="serwis">Serwis</option>
-      <option value="admin">Admin</option>
-    </select>
-
-    <h3>Struktury / Miasta</h3>
-    <div id="structuresBox"></div>
-
-    <button onclick="createUser()">✅ Utwórz użytkownika</button>
-
-  </div>
-
-</div>
-
-<!-- ✅ PODSTRONA 2 -->
-<div id="adminManageUsers" style="display:none;">
-
-  <div class="admin-box">
-
-    <h3>📋 Użytkownicy</h3>
-    <div id="usersList"></div>
-
-  </div>
-
-</div>
 
 </div>
 
@@ -990,35 +1068,37 @@ function renderAdminPanel(){
   });
 
   // ✅ budowanie HTML
-  structBox.innerHTML = Object.keys(map).sort().map(struct => {
+  
+structBox.innerHTML = Object.keys(map).sort().map(struct => {
 
-    const nodes = [...map[struct]].sort();
+  const nodes = [...map[struct]].sort();
 
-    return `
-      <div style="
-        border:1px solid #1f2937;
-        border-radius:10px;
-        padding:10px;
-        margin-bottom:8px;
-      ">
+  return `
+    <div style="
+      border:1px solid #1f2937;
+      border-radius:10px;
+      padding:10px;
+      margin-bottom:8px;
+    ">
 
-        <label style="font-weight:bold;">
-          <input type="checkbox" value="${struct}" class="structCheck">
-          ${struct}
-        </label>
+      <label style="font-weight:bold;">
+        <input type="checkbox" value="${struct}" class="structCheck">
+        ${struct}
+      </label>
 
-        <div style="margin-left:15px;margin-top:6px;display:grid;gap:4px;">
-          ${nodes.map(n => `
-            <label>
-              <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
-              ${n}
-            </label>
-          `).join("")}
-        </div>
-
+      <div style="margin-left:15px;margin-top:6px;display:grid;gap:4px;">
+        ${nodes.map(n => `
+          <label>
+            <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
+            ${n}
+          </label>
+        `).join("")}
       </div>
-    `;
-  }).join("");
+
+    </div>
+  `;
+}).join("");
+
  showAdminTab("addUser"); 
 }
 function showAdminTab(tab){
