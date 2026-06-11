@@ -1860,7 +1860,7 @@ function populateEventFilter(){
   const set=new Set();
 
   historyEvents.forEach(r=>{
-    if(r[5]) set.add(r[5]);
+    if(r.event_name) set.add(r.event_name);
   });
 
   document.getElementById("historyEventFilter").innerHTML=
@@ -1970,73 +1970,56 @@ html += `</div>`;
 
 /* ===== HISTORIA ===== */
 function renderHistoryList(){
+
   const node = document.getElementById("historyNodeFilter").value;
-  const from=document.getElementById("historyDateFrom").value;
-  const to=document.getElementById("historyDateTo").value;
-  const terminal = (document.getElementById("historyTerminalFilter").value || "").toLowerCase()
-  const event=document.getElementById("historyEventFilter").value;
+  const from = document.getElementById("historyDateFrom").value;
+  const to = document.getElementById("historyDateTo").value;
+  const terminal = (document.getElementById("historyTerminalFilter").value || "").toLowerCase();
+  const event = document.getElementById("historyEventFilter").value;
 
-  let html="";
+  let html = "";
 
-  
-historyEvents.forEach(r=>{
+  historyEvents.forEach(r => {
 
-  if(!r[0]) return;
+    const key = makeKey(r.id, r.structure);
+    const p = allParkomaty[key];
+    if (!p) return;
+    if (!hasAccessToParkomat(p)) return;
+    if (node && p.node !== node) return;
 
-  // ✅ NOWE – filtr po liście parkomatów
-  
-const key = makeKey(r[0], r[1]); // ✅ r[1] = structure
+    const d = parseLocalDate(r.start_date);
+    if (!d) return;
 
+    if (from) {
+      const f = new Date(from + "T00:00:00");
+      if (d < f) return;
+    }
 
-const p = allParkomaty[key];
-if (!p) return;
-if(!hasAccessToParkomat(p)) return;
-if(node && p.node !== node) return;
+    if (to) {
+      const t = new Date(to + "T23:59:59");
+      if (d > t) return;
+    }
 
+    if (terminal && !r.id.toLowerCase().includes(terminal)) return;
+    if (event && r.event_name !== event) return;
 
+    html += `
+      <div class="terminal-box">
+        <b>Parkomat ${r.id}</b><br>
 
-  
-const raw = r[3];
+        <div class="event-name">
+          ${r.event_name} (${r.hardware || ""})
+        </div>
 
+        Od: ${r.start_date}<br>
+        Do: ${r.end_date || ""}
+      </div>
+    `;
+  });
 
-const d = parseLocalDate(raw);
-if(!d) return false;
-
-
-if(!raw || isNaN(d) || raw.length < 10) return;
-
-
-  
-if(from){
-  const f = new Date(from + "T00:00:00");
-  if(d < f) return;
+  document.getElementById("historiaList").innerHTML = html;
 }
 
-  
-if(to){
-  const toDate = new Date(to + "T23:59:59");
-  if(d > toDate) return;
-}
-
-  if(terminal && !r[0].toLowerCase().includes(terminal)) return;
-  if(event && r[5]!==event) return;
-
-  html+=`
-    <div class="terminal-box">
-      <b>Parkomat ${r[0]}</b><br>
-      
-<div class="event-name">
-  ${r[5]} (${r[7]||""})
-</div>
-      Od: ${r[3]}<br>
-      Do: ${r[8]||""}
-    </div>
-  `;
-});
-
-
-  document.getElementById("historiaList").innerHTML=html;
-}
 /* ===== URZĄDZENIA ===== */
 function renderDevicesList(){
   const node = document.getElementById("deviceNodeFilter").value;
