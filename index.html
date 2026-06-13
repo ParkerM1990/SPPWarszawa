@@ -1595,16 +1595,17 @@ const hours = Number(
   document.getElementById("timeSelect")?.value || 24
 );
 
-const { data: infoSpikes } =
+
+const { data: infoSpikes, error: spikeError } =
   await supabaseClient.rpc("get_info_spikes", {
     threshold: threshold,
     hours: hours
   });
 
+if(spikeError){
+  console.error("BŁĄD spikes:", spikeError);
+}
 
-  if(spikeError){
-    console.error("BŁĄD spikes:", spikeError);
-  }
 
   // ✅ 4. RESET
   activeEvents = {};
