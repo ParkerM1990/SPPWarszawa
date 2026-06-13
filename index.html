@@ -653,6 +653,17 @@ Zaloguj
         <option value="">Wszystkie strefy</option>
       </select>
     </div>
+    
+ <!-- ✅ NOWY PRÓG -->
+  <div class="filter-item">
+    <span>🔥</span>
+    <select id="thresholdSelect" onchange="refreshApp()">
+      <option value="3">🔥 Czuły (3)</option>
+      <option value="5" selected>⚖️ Standard (5)</option>
+      <option value="10">🧊 Duże (10)</option>
+    </select>
+  </div>
+
   </div>
 
   <div id="map"></div>
@@ -1554,19 +1565,37 @@ if(nodeVal) nodeSet.add(nodeVal);
 /* ===== LOAD ACTIVE ===== */
 async function loadActive(){
 
+  // ✅ 1. POBIERZ NORMALNE BŁĘDY
   const { data, error } = await supabaseClient
     .from("active_events")
     .select("*")
-    .eq("level", "Błąd");   // ✅ filtr w bazie
+    .eq("level", "Błąd");
 
   if(error){
-    console.error(error);
+    console.error("BŁĄD active_events:", error);
     return;
   }
 
+  // ✅ 2. DYNAMICZNY PRÓG (z dropdown)
+  const threshold = Number(
+    document.getElementById("thresholdSelect")?.value || 5
+  );
+
+  // ✅ 3. POBIERZ ANALIZĘ (INFO SPIKES z bazy)
+  const { data: infoSpikes, error: spikeError } =
+    await supabaseClient.rpc("get_info_spikes", {
+      threshold: threshold
+    });
+
+  if(spikeError){
+    console.error("BŁĄD spikes:", spikeError);
+  }
+
+  // ✅ 4. RESET
   activeEvents = {};
   let count = 0;
 
+  // ✅ 5. DODAJ NORMALNE BŁĘDY
   data.forEach(e => {
 
     const key = makeKey(e.id, e.structure);
@@ -1585,6 +1614,26 @@ async function loadActive(){
     count++;
   });
 
+  // ✅ 6. DODAJ "INFO > threshold"
+  infoSpikes?.forEach(e => {
+
+    const key = makeKey(e.id, e.structure);
+
+    if(!allParkomaty[key]) return;
+
+    if(!activeEvents[key]) activeEvents[key] = [];
+
+    activeEvents[key].push({
+      name: `⚠️ ${e.hardware} – ${e.cnt} zdarzeń / 24h`,
+      code: "INFO_SPAM",
+      hardware: e.hardware || "Inne",
+      date: e.last_date
+    });
+
+    count++;
+  });
+
+  // ✅ 7. AKTUALIZUJ LICZNIK
   document.getElementById("alarmCounter").innerText = count;
 }
 
