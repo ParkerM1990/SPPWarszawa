@@ -1127,56 +1127,54 @@ function renderAdminPanel(){
 
   const structBox = document.getElementById("structuresBox");
 
-  // ✅ budujemy mapę: structure -> nodes
+  // ✅ mapowanie: node_2 → node
   const map = {};
 
   Object.values(allParkomaty).forEach(p => {
 
-    if(!map[p.structure]){
-      map[p.structure] = new Set();
+    const main = p.node_2 || p.node;  // ✅ główna grupa dla admina
+    const sub = p.node;               // ✅ oryginalna strefa
+
+    if(!main) return;
+
+    if(!map[main]){
+      map[main] = new Set();
     }
 
-    
-const nodeVal = getNode(p);
-if(nodeVal){
-  map[p.structure].add(nodeVal);
-}
-
+    if(sub){
+      map[main].add(sub);
+    }
   });
 
-  // ✅ budowanie HTML
-  
-structBox.innerHTML = Object.keys(map).sort().map(struct => {
+  // ✅ generowanie HTML
+  structBox.innerHTML = Object.keys(map).sort().map(struct => {
 
-  const nodes = [...map[struct]].sort();
+    const nodes = [...map[struct]].sort();
 
-  return `
-    
+    return `
 <div class="struct-box">
 
-    <div class="struct-header" onclick="toggleStruct(this)">
-      <input type="checkbox" value="${struct}" class="structCheck">
-      <b>${struct}</b>
-      <span class="arrow">▶</span>
-    </div>
-
-    <div class="node-list hidden">
-      ${nodes.map(n => `
-       
-<label>
-  <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
-  <span>${n}</span>
-</label>
-
-      `).join("")}
-    </div>
-
+  <div class="struct-header" onclick="toggleStruct(this)">
+    <input type="checkbox" value="${struct}" class="structCheck">
+    <b>${struct}</b>
+    <span class="arrow">▶</span>
   </div>
+
+  <div class="node-list hidden">
+    ${nodes.map(n => `
+      <label>
+        <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
+        <span>${n}</span>
+      </label>
+    `).join("")}
+  </div>
+
+</div>
 `;
 
-}).join("");
+  }).join("");
 
- showAdminTab("addUser"); 
+  showAdminTab("addUser");
 }
 function showAdminTab(tab){
 
