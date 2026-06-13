@@ -1541,7 +1541,11 @@ allParkomaty[key] = {
 
 
     
-const nodeVal = getNode(p);
+
+const nodeVal = (window.currentUser?.role === "admin")
+  ? (p.node_2 || p.node)
+  : p.node;
+
 if(nodeVal) nodeSet.add(nodeVal);
 
   });
@@ -1960,7 +1964,7 @@ Object.keys(activeEvents).forEach(key => {
   const p = allParkomaty[key];
   if(!p) return;
   if(!hasAccessToParkomat(p)) return;
-  if(node && p.node!==node) return;
+  if(node && getNode(p)!==node) return;
 
   let popup = `<b>Parkomat ${p.id}</b><br>${p.location}<br><br>`;
 
