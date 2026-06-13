@@ -1961,7 +1961,7 @@ Object.keys(activeEvents).forEach(key => {
 activeEvents[key].forEach(e=>{
   popup+=`
     • <b>${e.hardware || "Inne"}</b> – ${e.name}<br>
-    <small>${e.date}</small><br>
+    <small>${formatDatePL(e.date)}</small><br>
   `;
 
   });
@@ -2129,7 +2129,7 @@ if(from){
 filtered.forEach(e => {
   html += `
     • <b>${e.hardware || "Inne"}</b> – ${e.name}<br>
-    <small>${e.date}</small><br>
+    <small>${formatDatePL(e.date)}</small><br>
 
     <button onclick="openServiceModal('${key}', ${JSON.stringify(e).replace(/"/g,'&quot;')})"
       style="
@@ -2200,8 +2200,10 @@ function renderHistoryList(){
         ${r.event_name}
       </div>
 
-      Od: ${r.start_date}<br>
-      Do: ${r.end_date || ""}
+      
+Od: ${formatDatePL(r.start_date)}
+Do: ${formatDatePL(r.end_date)}
+
     </div>
   `;
 });
@@ -2396,8 +2398,10 @@ function renderInterwencje(){
       <b>${i.event_name}</b><br>
 
       <small>
-        Od: ${i.start_date}<br>
-        Do: ${i.end_date}
+        
+Od: ${formatDatePL(i.start_date)}
+Do: ${formatDatePL(i.end_date)
+
       </small><br><br>
 
       👤 ${i.user_email}<br>
