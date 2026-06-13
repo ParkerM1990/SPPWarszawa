@@ -1556,7 +1556,8 @@ async function loadActive(){
 
   const { data, error } = await supabaseClient
     .from("active_events")
-    .select("*");
+    .select("*")
+    .eq("level", "Błąd");   // ✅ filtr w bazie
 
   if(error){
     console.error(error);
