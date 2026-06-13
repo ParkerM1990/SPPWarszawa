@@ -109,9 +109,16 @@ header{
     padding-bottom:env(safe-area-inset-bottom);
   }
 
-  .main{
-    left: 0 !important;
-    bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)) !important;
+ .main{
+    left:0 !important;
+
+    bottom:calc(
+      var(--bottom-bar)
+      + env(safe-area-inset-bottom)
+      + 20px
+    ) !important;
+
+    padding-bottom:40px;
   }
 
   .nav-btn{
@@ -303,7 +310,8 @@ header{
   left:var(--sidebar-w);
   right:0;
   bottom:0;
-  overflow:auto;   /* ✅ zostaje scroll */
+  overflow-y:auto;
+  padding-bottom:20px;
 }
 
 
