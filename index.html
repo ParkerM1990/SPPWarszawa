@@ -1842,7 +1842,7 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
     return;
   }
 
-  const now = getLocalDateTime();
+  const now = new Date().toISOString();
 
   try{
 
@@ -1853,7 +1853,7 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
         structure: p.structure,
         location: p.location,
         event_name: event.name,
-        start_date: formatDateForDB(parseLocalDate(event.date)),
+        start_date: new Date(event.date).toISOString(),
         end_date: now,
         user_email: user,
         actions: actions,
@@ -1903,7 +1903,7 @@ if(currentService.key){
         event_name: event.name,
         event_code: event.code,
         hardware: event.hardware,
-        start_date: event.date,
+        start_date: new Date(event.date).toISOString(),
         end_date: now
       }]);
 
