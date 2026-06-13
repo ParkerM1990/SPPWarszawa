@@ -110,9 +110,9 @@ header{
   }
 
   .main{
-  left:0 !important;
-  bottom:var(--bottom-bar);
-}
+    left: 0 !important;
+    bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom)) !important;
+  }
 
   .nav-btn{
     width:60px;
