@@ -1136,9 +1136,12 @@ function renderAdminPanel(){
       map[p.structure] = new Set();
     }
 
-    if(p.node){
-      map[p.structure].add(p.node);
-    }
+    
+const nodeVal = getNode(p);
+if(nodeVal){
+  map[p.structure].add(nodeVal);
+}
+
   });
 
   // ✅ budowanie HTML
@@ -1356,7 +1359,17 @@ let allParkomaty={};
 let activeEvents={};
 let historyEvents=[];
 const RED_CODES = ["16384","16385","16386","16900"];
-  
+function getNode(p){
+
+  // ✅ admin widzi nową strukturę
+  if(window.currentUser?.role === "admin"){
+    return p.node_2 || p.node;
+  }
+
+  // ✅ reszta – stara
+  return p.node;
+}
+
 function hasAccessToParkomat(p){
 
   // ✅ admin widzi wszystko
@@ -1369,7 +1382,10 @@ function hasAccessToParkomat(p){
   if(userStructures.length && !userStructures.includes(p.structure)) return false;
 
   // ✅ brak przypisanych stref = brak dostępu
-  if(userNodes.length && p.node && !userNodes.includes(p.node)) return false;
+  
+const nodeVal = getNode(p);
+if(userNodes.length && nodeVal && !userNodes.includes(nodeVal)) return false;
+
 
   return true;
 }
@@ -1512,16 +1528,22 @@ async function loadParkomaty(){
 
     const key = makeKey(p.id, p.structure);
 
-    allParkomaty[key] = {
-      id: p.id,
-      structure: p.structure,
-      lat: Number(p.lat),
-      lng: Number(p.lng),
-      location: p.location,
-      node: p.node
-    };
+    
+allParkomaty[key] = {
+  id: p.id,
+  structure: p.structure,
+  lat: Number(p.lat),
+  lng: Number(p.lng),
+  location: p.location,
+  node: p.node,
+  node_2: p.node_2 || p.node   // 🔥 fallback
+};
 
-    if(p.node) nodeSet.add(p.node);
+
+    
+const nodeVal = getNode(p);
+if(nodeVal) nodeSet.add(nodeVal);
+
   });
 
   console.log("✅ ZAŁADOWANO:", allData.length);
@@ -2098,7 +2120,7 @@ if(from){
       if(event && e.name !== event) return false;
 
       // ✅ filtr po strefie
-      if(node && p.node !== node) return false;
+      if(node && getNode(p) !== node) return false;
 
       return true;
     });
@@ -2214,7 +2236,7 @@ function renderDevicesList(){
     `.toLowerCase();
 
     if(search && !text.includes(search)) return;
-    if(node && p.node !== node) return;
+    if(node && getNode(p) !== node) return;
 
     const key = makeKey(p.id, p.structure);
 
@@ -2236,7 +2258,7 @@ function renderDevicesList(){
         ${p.location}<br>
 
         <small style="color:#9ca3af;">
-          Strefa: ${p.node || "-"}
+          Strefa: ${getNode(p) || "-"}
         </small>
       </div>
 
@@ -2744,7 +2766,7 @@ async function openEditUser(id){
     `).join("");
 
   const nodes = [...new Set(
-    Object.values(allParkomaty).map(p => p.node).filter(Boolean)
+    Object.values(allParkomaty).map(p => getNode(p)).filter(Boolean)
   )];
 
   document.getElementById("editNodes").innerHTML =
