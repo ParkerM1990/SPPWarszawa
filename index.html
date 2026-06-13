@@ -2198,8 +2198,13 @@ function renderHistoryList(){
 
   html += `
     <div class="terminal-box">
-      <b>Parkomat ${id}</b><br>
-      ${location}<br>
+      
+<b>Parkomat ${id}</b><br>
+
+    <small style="color:#9ca3af;">
+      ${r.hardware || "Brak danych"}
+    </small><br>
+
 
       <div class="event-name">
         ${r.event_name}
