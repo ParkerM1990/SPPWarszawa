@@ -1911,7 +1911,8 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
         end_date: now,
         user_email: user,
         actions: actions,
-        parts: parts
+        parts: parts,
+        handled_spike: currentService?.event?.code === "INFO_SPAM"
 
       }]);
 
