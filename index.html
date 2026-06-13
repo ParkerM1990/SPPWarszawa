@@ -1640,7 +1640,7 @@ if(spikeError){
     if(!activeEvents[key]) activeEvents[key] = [];
 
     activeEvents[key].push({
-      name: `⚠️ ${e.hardware} – ${e.cnt} zdarzeń / 24h`,
+      name: `⚠️ ${e.hardware} – ${e.cnt} zdarzeń / ${hours}h`,
       code: "INFO_SPAM",
       hardware: e.hardware || "Inne",
       date: e.last_date
