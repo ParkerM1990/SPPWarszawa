@@ -1530,9 +1530,7 @@ allParkomaty[key] = {
 
     
 
-const nodeVal = (window.currentUser?.role === "admin")
-  ? (p.node_2 || p.node)
-  : p.node;
+const nodeVal = p.node;
 
 if(nodeVal) nodeSet.add(nodeVal);
 
