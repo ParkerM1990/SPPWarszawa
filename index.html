@@ -264,8 +264,11 @@ header{
 
 
 
-.struct-box label span{.struct-box label span /* NIE łamie */
+
+.struct-box label span{
+  word-break: break-word;
 }
+
 
 
 
@@ -1420,7 +1423,6 @@ function hasAccessToParkomat(p){
   // ✅ admin widzi wszystko
   if(window.currentUser?.role === "admin") return true;
 
-  const userStructures = window.currentUser?.structures || [];
   const userNodes = window.currentUser?.nodes || [];
 
   // ✅ brak przypisanych stref = brak dostępu
@@ -1564,29 +1566,42 @@ async function loadParkomaty(){
   const nodeSet = new Set();
   allParkomaty = {};
 
-  allData.forEach(p => {
+  
+allData.forEach(p => {
 
-    const key = makeKey(p.id, p.structure);
+  const key = makeKey(p.id, p.structure);
 
-    
-allParkomaty[key] = {
-  id: p.id,
-  structure: p.structure,
-  lat: Number(p.lat),
-  lng: Number(p.lng),
-  location: p.location,
-  node: p.node,
-  node_2: p.node_2 || p.node   // 🔥 fallback
-};
+  const park = {
+    id: p.id,
+    structure: p.structure,
+    lat: Number(p.lat),
+    lng: Number(p.lng),
+    location: p.location,
+    node: p.node,
+    node_2: p.node_2 || p.node
+  };
+
+  allParkomaty[key] = park;
+
+  // ✅ 🔥 FILTR UPRAWNIEŃ
+ 
+const userNodes = window.currentUser?.nodes || [];
+
+const nodeVal = getNode(park);
+
+// ✅ ADMIN widzi wszystko
+if(window.currentUser?.role === "admin"){
+  if(nodeVal) nodeSet.add(nodeVal);
+}
+else{
+  // ✅ zwykły user – tylko swoje node
+  if(userNodes.length && nodeVal && userNodes.includes(nodeVal)){
+    nodeSet.add(nodeVal);
+  }
+}
 
 
-    
-
-const nodeVal = p.node;
-
-if(nodeVal) nodeSet.add(nodeVal);
-
-  });
+});
 
   console.log("✅ ZAŁADOWANO:", allData.length);
 
@@ -1596,10 +1611,34 @@ if(nodeVal) nodeSet.add(nodeVal);
     `<option value="">Wszystkie strefy</option>` +
     nodes.map(n => `<option value="${n}">${n}</option>`).join('');
 
-  document.getElementById("nodeFilter").innerHTML = options;
-  document.getElementById("activeNodeFilter").innerHTML = options;
-  document.getElementById("historyNodeFilter").innerHTML = options;
-  document.getElementById("deviceNodeFilter").innerHTML = options;
+  // ✅ zapamiętaj poprzednie wartości
+const prevNode = document.getElementById("nodeFilter").value;
+const prevActiveNode = document.getElementById("activeNodeFilter").value;
+const prevHistoryNode = document.getElementById("historyNodeFilter").value;
+const prevDeviceNode = document.getElementById("deviceNodeFilter").value;
+
+// ✅ ustaw nowe opcje
+document.getElementById("nodeFilter").innerHTML = options;
+document.getElementById("activeNodeFilter").innerHTML = options;
+document.getElementById("historyNodeFilter").innerHTML = options;
+document.getElementById("deviceNodeFilter").innerHTML = options;
+
+// ✅ przywróć poprzedni wybór (jeśli nadal istnieje)
+if([...document.getElementById("nodeFilter").options].some(o => o.value === prevNode)){
+  document.getElementById("nodeFilter").value = prevNode;
+}
+
+if([...document.getElementById("activeNodeFilter").options].some(o => o.value === prevActiveNode)){
+  document.getElementById("activeNodeFilter").value = prevActiveNode;
+}
+
+if([...document.getElementById("historyNodeFilter").options].some(o => o.value === prevHistoryNode)){
+  document.getElementById("historyNodeFilter").value = prevHistoryNode;
+}
+
+if([...document.getElementById("deviceNodeFilter").options].some(o => o.value === prevDeviceNode)){
+  document.getElementById("deviceNodeFilter").value = prevDeviceNode;
+}
 }
 
 
@@ -2715,6 +2754,7 @@ async function init(){
   populateEventFilter();
   renderAdminPanel();
   renderAll();
+  setInterval(refreshApp, 300000); // co 30s
 }
 
 const hash = window.location.hash;
@@ -2767,12 +2807,20 @@ async function refreshApp(){
   const icon = document.getElementById("refreshIcon");
   if(icon) icon.innerText = "⏳";
 
-  await loadParkomaty();
-  await loadActive();
-  await loadHistory();
-  await loadInterwencje();
+  
+await Promise.all([
+  loadParkomaty(),
+  loadActive(),
+  loadHistory(),
+  loadInterwencje()
+]);
+
 
   renderAll();
+
+populateActiveEventFilter();
+populateEventFilter();
+populateUserFilter();
 
   if(icon) icon.innerText = "🔄";
 
