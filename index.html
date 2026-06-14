@@ -2832,31 +2832,66 @@ async function openEditUser(id){
   document.getElementById("editLastName").value = data.last_name || "";
   document.getElementById("editRole").value = data.role;
 
-  const structures = [...new Set(
-    Object.values(allParkomaty).map(p => p.structure)
-  )];
+  // ✅ MAPA jak przy dodawaniu
+  const map = {};
 
-  document.getElementById("editStructures").innerHTML =
-    structures.map(s => `
-      <label>
-        <input type="checkbox" value="${s}"
-        ${data.structures?.includes(s) ? "checked" : ""}>
-        ${s}
-      </label>
-    `).join("");
+  Object.values(allParkomaty).forEach(p => {
 
-  const nodes = [...new Set(
-    Object.values(allParkomaty).map(p => getNode(p)).filter(Boolean)
-  )];
+    const main = p.node_2 || p.node;
+    const sub = p.node;
 
-  document.getElementById("editNodes").innerHTML =
-    nodes.map(n => `
-      <label>
-        <input type="checkbox" value="${n}"
-        ${data.nodes?.includes(n) ? "checked" : ""}>
-        ${n}
-      </label>
-    `).join("");
+    if(!main) return;
+
+    if(!map[main]){
+      map[main] = new Set();
+    }
+
+    if(sub){
+      map[main].add(sub);
+    }
+  });
+
+  // ✅ GENEROWANIE IDENTYCZNEGO UI
+  const html = Object.keys(map).sort().map(struct => {
+
+    const nodes = [...map[struct]].sort();
+
+    const structChecked = (data.structures || []).includes(struct);
+
+    return `
+    <div class="struct-box">
+
+      <div class="struct-header" onclick="toggleStruct(this)">
+        <input type="checkbox"
+               class="editStructCheck"
+               value="${struct}"
+               ${structChecked ? "checked" : ""}>
+        <b>${struct}</b>
+        <span class="arrow">▶</span>
+      </div>
+
+      <div class="node-list hidden">
+        ${nodes.map(n => {
+          const checked = (data.nodes || []).includes(n);
+
+          return `
+            <label>
+              <input type="checkbox"
+                     class="editNodeCheck"
+                     data-struct="${struct}"
+                     value="${n}"
+                     ${checked ? "checked" : ""}>
+              <span>${n}</span>
+            </label>
+          `;
+        }).join("")}
+      </div>
+
+    </div>
+    `;
+  }).join("");
+
+  document.getElementById("editStructures").innerHTML = html;
 
   document.getElementById("editUserModal").style.display="flex";
 }
@@ -2868,11 +2903,15 @@ async function saveUserEdit(){
   const last = document.getElementById("editLastName").value;
   const role = document.getElementById("editRole").value;
 
-  const structures = [...document.querySelectorAll("#editStructures input:checked")]
-    .map(el => el.value);
+  
+const structures = [
+  ...document.querySelectorAll(".editStructCheck:checked")
+].map(el => el.value);
 
-  const nodes = [...document.querySelectorAll("#editNodes input:checked")]
-    .map(el => el.value);
+const nodes = [
+  ...document.querySelectorAll(".editNodeCheck:checked")
+].map(el => el.value);
+
 
   await supabaseClient
     .from("users")
