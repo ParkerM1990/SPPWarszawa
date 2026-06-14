@@ -1790,6 +1790,10 @@ else{
   const nodes = [...nodeSet].sort();
 renderNodeFilter(nodes);
 
+const options =
+  `<option value="">Wszystkie strefy</option>` +
+  nodes.map(n => `<option value="${n}">${n}</option>`).join('');
+
   // ✅ zapamiętaj poprzednie wartości
 const prevActiveNode = document.getElementById("activeNodeFilter").value;
 const prevHistoryNode = document.getElementById("historyNodeFilter").value;
@@ -1801,10 +1805,6 @@ document.getElementById("historyNodeFilter").innerHTML = options;
 document.getElementById("deviceNodeFilter").innerHTML = options;
 
 // ✅ przywróć poprzedni wybór (jeśli nadal istnieje)
-if([...document.getElementById("nodeFilter").options].some(o => o.value === prevNode)){
-  document.getElementById("nodeFilter").value = prevNode;
-}
-
 if([...document.getElementById("activeNodeFilter").options].some(o => o.value === prevActiveNode)){
   document.getElementById("activeNodeFilter").value = prevActiveNode;
 }
@@ -3007,7 +3007,6 @@ function showStats(){
 
   
 const nodes = getSelectedNodes();
-  .map(o => o.value);
 
 
   let totalDevices = 0;
@@ -3049,7 +3048,6 @@ function updateAlarmCounter(){
 
   
 const nodes = getSelectedNodes();
-  .map(o => o.value);
 
 
   let total = 0;
