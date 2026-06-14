@@ -1423,9 +1423,6 @@ function hasAccessToParkomat(p){
   const userStructures = window.currentUser?.structures || [];
   const userNodes = window.currentUser?.nodes || [];
 
-  // ✅ brak przypisanych struktur = brak dostępu
-  if(userStructures.length && !userStructures.includes(p.structure)) return false;
-
   // ✅ brak przypisanych stref = brak dostępu
   
 const nodeVal = getNode(p);
