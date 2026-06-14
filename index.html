@@ -1242,13 +1242,25 @@ async function createUser(){
   const password = document.getElementById("newPassword").value;
   const role = document.getElementById("newRole").value;
 
-  const structures = [
-    ...document.querySelectorAll(".structCheck:checked")
-  ].map(el => el.value);
+ 
 
-  const nodes = [
-    ...document.querySelectorAll(".nodeCheck:checked")
-  ].map(el => el.value);
+// ✅ zbierz struktury (Set usuwa duplikaty)
+
+const selectedStructs = new Set(
+  [...document.querySelectorAll(".structCheck:checked")]
+    .map(el => el.value)
+);
+
+document.querySelectorAll(".nodeCheck:checked").forEach(el => {
+  selectedStructs.add(el.dataset.struct);
+});
+
+const structures = [...selectedStructs];
+
+const nodes = [
+  ...document.querySelectorAll(".nodeCheck:checked")
+].map(el => el.value);
+
 
   if(!email || !password || !firstName){
   alert("❌ Uzupełnij dane");
@@ -2904,13 +2916,22 @@ async function saveUserEdit(){
   const role = document.getElementById("editRole").value;
 
   
-const structures = [
-  ...document.querySelectorAll(".editStructCheck:checked")
-].map(el => el.value);
+
+const selectedStructs = new Set(
+  [...document.querySelectorAll(".editStructCheck:checked")]
+    .map(el => el.value)
+);
+
+document.querySelectorAll(".editNodeCheck:checked").forEach(el => {
+  selectedStructs.add(el.dataset.struct);
+});
+
+const structures = [...selectedStructs];
 
 const nodes = [
   ...document.querySelectorAll(".editNodeCheck:checked")
 ].map(el => el.value);
+
 
 
   await supabaseClient
