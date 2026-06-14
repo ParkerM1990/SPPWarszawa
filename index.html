@@ -1222,9 +1222,8 @@ function showAdminTab(tab){
   
   document.addEventListener("change", (e) => {
 
-  // ✅ klik na strukturę
+  // ✅ ADD USER
   if(e.target.classList.contains("structCheck")){
-
     const struct = e.target.value;
     const checked = e.target.checked;
 
@@ -1232,6 +1231,17 @@ function showAdminTab(tab){
       .querySelectorAll(`.nodeCheck[data-struct="${struct}"]`)
       .forEach(cb => cb.checked = checked);
   }
+
+  // ✅ EDIT USER
+  if(e.target.classList.contains("editStructCheck")){
+    const struct = e.target.value;
+    const checked = e.target.checked;
+
+    document
+      .querySelectorAll(`.editNodeCheck[data-struct="${struct}"]`)
+      .forEach(cb => cb.checked = checked);
+  }
+
 });
 
 async function createUser(){
