@@ -3250,7 +3250,7 @@ const isOnline = u.is_online && diff < 300000;
       <span style="color:#9ca3af;">
         Ostatnio: ${
           u.last_seen
-            ? new Date(u.last_seen).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" })
+            ? formatDatePL(u.last_seen)
             : "-"
         }
       </span>
