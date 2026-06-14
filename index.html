@@ -1245,29 +1245,39 @@ async function checkAuth(){
 
   if(data.session){
 
-    document.getElementById("authBox").style.display = "none";
-
-    // ✅ NAJPIERW pobierz profil
+    // ✅ pobierz profil
     const { data: profile } = await supabaseClient
       .from("users")
       .select("*")
       .eq("id", data.session.user.id)
       .single();
 
+    // ✅ 🔥 KLUCZOWE – sprawdzenie statusu
+    if(profile.is_online === false || profile.is_active === false){
+      alert("🔒 Zostałeś wylogowany przez administratora");
+
+      await supabaseClient.auth.signOut();
+      document.getElementById("authBox").style.display = "flex";
+      return;
+    }
+
     window.currentUser = profile;
 
-    // ✅ dopiero teraz używaj profile
+    // ✅ UI
+    document.getElementById("authBox").style.display = "none";
+
     const fullName = profile?.first_name
       ? profile.first_name + " " + (profile.last_name || "")
       : data.session.user.email;
 
-    document.getElementById("userBadge").innerText = "👤 " + fullName.trim();
+    document.getElementById("userBadge").innerText =
+      "👤 " + fullName.trim();
 
     applyUserRole(profile);
+
     await init();
-    
-// ✅ RESET widoku
-showSection('mapSection');
+
+    showSection('mapSection');
 
   }else{
     document.getElementById("authBox").style.display = "flex";
