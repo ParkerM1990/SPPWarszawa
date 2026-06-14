@@ -3161,20 +3161,37 @@ async function refreshApp(){
   const icon = document.getElementById("refreshIcon");
   if(icon) icon.innerText = "⏳";
 
-  
-await Promise.all([
-  loadParkomaty(),
-  loadActive(),
-  loadHistory(),
-  loadInterwencje()
-]);
-
+  await Promise.all([
+    loadParkomaty(),
+    loadActive(),
+    loadHistory(),
+    loadInterwencje()
+  ]);
 
   renderAll();
 
-populateActiveEventFilter();
-populateEventFilter();
-populateUserFilter();
+  populateActiveEventFilter();
+  populateEventFilter();
+  populateUserFilter();
+
+  // ✅ ✅ 🔥 KLUCZOWE — sprawdzenie czy admin wylogował usera
+  if(window.currentUser){
+
+    const { data, error } = await supabaseClient
+      .from("users")
+      .select("is_online")
+      .eq("id", window.currentUser.id)
+      .single();
+
+    if(!error && data && data.is_online === false){
+
+      alert("🔒 Sesja zakończona przez administratora");
+
+      isRefreshing = false; // ✅ żeby nie blokować future refresh
+      logout();
+      return; // ✅ STOP dalszego działania
+    }
+  }
 
   if(icon) icon.innerText = "🔄";
 
@@ -3241,6 +3258,11 @@ function renderUsers(users){
         style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:6px;">
         ✏️ Edytuj
       </button>
+    
+<button onclick="forceLogout('${u.id}')"
+  style="background:#f59e0b;color:white;border:none;padding:6px 10px;border-radius:6px;">
+  🔌 Wyloguj
+</button>
 
       <button onclick="toggleUser('${u.id}', ${u.is_active !== false})"
         style="background:#f59e0b;color:white;border:none;padding:6px 10px;border-radius:6px;">
@@ -3615,7 +3637,27 @@ setInterval(async () => {
     .eq("id", window.currentUser.id);
 
 }, 60000);
+async function forceLogout(userId){
 
+  if(!confirm("Wylogować użytkownika?")) return;
+
+  const { error } = await supabaseClient
+    .from("users")
+    .update({
+      is_online: false
+    })
+    .eq("id", userId);
+
+  if(error){
+    console.error(error);
+    alert("❌ Błąd");
+    return;
+  }
+
+  alert("✅ Użytkownik wylogowany");
+
+  loadUsers();
+}
 </script>
 
 </body>
