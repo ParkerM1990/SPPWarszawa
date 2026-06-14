@@ -514,6 +514,21 @@ input[type="date"] {
   background:#374151;
 }
 
+#nodeFilterBox {
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  max-height:70px;
+  overflow:auto;
+}
+
+#nodeFilterBox label {
+  background:#111827;
+  padding:3px 6px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
 
 </style>
 </head>
@@ -650,12 +665,12 @@ Zaloguj
 <div id="mapSection" class="section active">
 
   <div class="filter-bar mobile">
-    <div class="filter-item">
-      <span>📍</span>
-      <select id="nodeFilter" onchange="renderAll()">
-        <option value="">Wszystkie strefy</option>
-      </select>
-    </div>
+    
+<div class="filter-item">
+  <span>📍</span>
+  <div id="nodeFilterBox"></div>
+</div>
+
     
  <!-- ✅ NOWY PRÓG -->
   <div class="filter-item">
@@ -1773,19 +1788,14 @@ else{
   console.log("✅ ZAŁADOWANO:", allData.length);
 
   const nodes = [...nodeSet].sort();
-
-  const options =
-    `<option value="">Wszystkie strefy</option>` +
-    nodes.map(n => `<option value="${n}">${n}</option>`).join('');
+renderNodeFilter(nodes);
 
   // ✅ zapamiętaj poprzednie wartości
-const prevNode = document.getElementById("nodeFilter").value;
 const prevActiveNode = document.getElementById("activeNodeFilter").value;
 const prevHistoryNode = document.getElementById("historyNodeFilter").value;
 const prevDeviceNode = document.getElementById("deviceNodeFilter").value;
 
 // ✅ ustaw nowe opcje
-document.getElementById("nodeFilter").innerHTML = options;
 document.getElementById("activeNodeFilter").innerHTML = options;
 document.getElementById("historyNodeFilter").innerHTML = options;
 document.getElementById("deviceNodeFilter").innerHTML = options;
@@ -2242,7 +2252,7 @@ if(currentService.key){
 /* ===== MAP + AUTO CENTER ===== */
 function renderMarkers(){
 
-  const node=document.getElementById("nodeFilter").value;
+  const nodes = getSelectedNodes();
   markerLayer.clearLayers();
 
   let points=[];
@@ -2254,7 +2264,7 @@ Object.keys(activeEvents).forEach(key => {
   const p = allParkomaty[key];
   if(!p) return;
   if(!hasAccessToParkomat(p)) return;
-  if(node && getNode(p)!==node) return;
+  if(nodes.length && !nodes.includes(getNode(p))) return;
 
   let popup = `<b>Parkomat ${p.id}</b><br>${p.location}<br><br>`;
 
@@ -2537,7 +2547,7 @@ function renderDevicesList(){
     `.toLowerCase();
 
     if(search && !text.includes(search)) return;
-    if(node && getNode(p) !== node) return;
+    if(nodes.length && !nodes.includes(getNode(p))) return;
 
     const key = makeKey(p.id, p.structure);
 
@@ -2995,7 +3005,10 @@ Do: ${formatDatePL(i.end_date)}
   /* ===== STATYSTYKI ===== */
 function showStats(){
 
-  const node = document.getElementById("nodeFilter").value;
+  
+const nodes = getSelectedNodes();
+  .map(o => o.value);
+
 
   let totalDevices = 0;
   let devicesWithAlarms = 0;
@@ -3007,7 +3020,7 @@ function showStats(){
     if(!p) return;
 
     // ✅ filtr strefy
-    if(node && getNode(p) !== node) return;
+    if(nodes.length && !nodes.includes(getNode(p))) return;
 
     // ✅ filtr uprawnień
     if(!hasAccessToParkomat(p)) return;
@@ -3034,7 +3047,10 @@ function showStats(){
 }
 function updateAlarmCounter(){
 
-  const node = document.getElementById("nodeFilter").value;
+  
+const nodes = getSelectedNodes();
+  .map(o => o.value);
+
 
   let total = 0;
   let devices = 0;
@@ -3044,7 +3060,7 @@ function updateAlarmCounter(){
     const p = allParkomaty[key];
     if(!p) return;
 
-    if(node && getNode(p) !== node) return;
+   if(nodes.length && !nodes.includes(getNode(p))) return;
     if(!hasAccessToParkomat(p)) return;
 
     devices++;
@@ -3674,6 +3690,23 @@ async function forceLogout(userId){
 
   loadUsers();
 }
+  function renderNodeFilter(nodes){
+
+  const box = document.getElementById("nodeFilterBox");
+
+  box.innerHTML = nodes.map(n => `
+    <label style="display:flex; gap:6px; font-size:13px;">
+      <input type="checkbox" value="${n}" onchange="renderAll()">
+      ${n}
+    </label>
+  `).join('');
+}
+  
+function getSelectedNodes(){
+  return [...document.querySelectorAll("#nodeFilterBox input:checked")]
+    .map(i => i.value);
+}
+
 </script>
 
 </body>
