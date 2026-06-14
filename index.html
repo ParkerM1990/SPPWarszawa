@@ -899,6 +899,10 @@ Zaloguj
   🅿️ Parkomaty
 </button>
 
+<button onclick="showAdminTab('config')" class="admin-tab-btn">
+  ⚙️ Słowniki
+</button>
+
     </div>
 
     <!-- ✅ DODAWANIE -->
@@ -975,6 +979,33 @@ Zaloguj
 
     <div id="parkomatyList"></div>
   </div>
+</div>
+    <div id="adminConfig" style="display:none;">
+
+  <div class="admin-card">
+    <h3>🔧 Części</h3>
+
+    <input id="newPart" placeholder="Nowa część">
+
+    <button onclick="addPart()" style="margin:5px 0;">
+      ➕ Dodaj
+    </button>
+
+    <div id="partsList"></div>
+  </div>
+
+  <div class="admin-card">
+    <h3>⚙️ Czynności</h3>
+
+    <input id="newAction" placeholder="Nowa czynność">
+
+    <button onclick="addAction()" style="margin:5px 0;">
+      ➕ Dodaj
+    </button>
+
+    <div id="actionsList"></div>
+  </div>
+
 </div>
   </div>
 
@@ -1323,7 +1354,13 @@ if(tab === "parkomaty"){
   document.querySelectorAll(".admin-tab-btn")[2].classList.add("active");
   renderParkomatyAdminList(); // ✅ załaduj listę
 }
+if(tab === "config"){
+  document.getElementById("adminConfig").style.display = "block";
+  document.querySelectorAll(".admin-tab-btn")[3].classList.add("active");
 
+  renderParts();
+  renderActions();
+}
 }
   
   document.addEventListener("change", (e) => {
@@ -3419,9 +3456,110 @@ function toggleStruct(el){
 
   arrow.textContent = list.classList.contains("hidden") ? "▶" : "▼";
 }
+async function addPart(){
 
+  const name = document.getElementById("newPart").value.trim();
 
+  if(!name){
+    alert("❌ Podaj nazwę");
+    return;
+  }
 
+  const { error } = await supabaseClient
+    .from("parts")
+    .insert([{ name }]);
+
+  if(error){
+    alert("❌ Błąd");
+    return;
+  }
+
+  document.getElementById("newPart").value = "";
+
+  await loadParts();
+  renderParts();
+}
+function renderParts(){
+
+  const box = document.getElementById("partsList");
+
+  box.innerHTML = serviceParts.map(p => `
+    <div class="terminal-box">
+
+      ${p}
+
+      <button onclick="deletePart('${p}')"
+        style="float:right;background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:6px;">
+        🗑️
+      </button>
+
+    </div>
+  `).join("");
+}
+async function deletePart(name){
+
+  if(!confirm("Usunąć część?")) return;
+
+  await supabaseClient
+    .from("parts")
+    .delete()
+    .eq("name", name);
+
+  await loadParts();
+  renderParts();
+}
+  async function addAction(){
+
+  const name = document.getElementById("newAction").value.trim();
+
+  if(!name){
+    alert("❌ Podaj nazwę");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("actions")
+    .insert([{ name }]);
+
+  if(error){
+    alert("❌ Błąd");
+    return;
+  }
+
+  document.getElementById("newAction").value = "";
+
+  await loadServiceActions();
+  renderActions();
+}
+  function renderActions(){
+
+  const box = document.getElementById("actionsList");
+
+  box.innerHTML = serviceActions.map(a => `
+    <div class="terminal-box">
+
+      ${a}
+
+      <button onclick="deleteAction('${a}')"
+        style="float:right;background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:6px;">
+        🗑️
+      </button>
+
+    </div>
+  `).join("");
+}
+  async function deleteAction(name){
+
+  if(!confirm("Usunąć czynność?")) return;
+
+  await supabaseClient
+    .from("actions")
+    .delete()
+    .eq("name", name);
+
+  await loadServiceActions();
+  renderActions();
+}
 </script>
 
 </body>
