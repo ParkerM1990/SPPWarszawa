@@ -3210,7 +3210,32 @@ function renderUsers(users){
       <b>${fullName || u.email}</b><br>
       ${u.email}<br>
       <small>Rola: ${u.role}</small><br>
-      <small>Status: ${u.is_active !== false ? "✅ aktywny" : "⛔ zablokowany"}</small><br><br>
+      ${(() => {
+
+  const isOnline = u.is_online &&
+    (new Date() - new Date(u.last_seen)) < 120000;
+
+  return `
+    <small>
+      Status: ${u.is_active !== false ? "✅ aktywny" : "⛔ zablokowany"}
+      <br>
+      Online: ${
+        isOnline
+          ? '<span style="color:#16a34a;font-weight:bold;">🟢 ONLINE</span>'
+          : '<span style="color:#6b7280;">⚫ offline</span>'
+      }
+      <br>
+      <span style="color:#9ca3af;">
+        Ostatnio: ${
+          u.last_seen
+            ? new Date(u.last_seen).toLocaleString()
+            : "-"
+        }
+      </span>
+    </small>
+    <br><br>
+  `;
+})()}
 
       <button onclick="openEditUser('${u.id}')"
         style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:6px;">
