@@ -894,6 +894,11 @@ Zaloguj
       <button onclick="showAdminTab('manageUsers')" class="admin-tab-btn">
         📋 Zarządzaj użytkownikami
       </button>
+      
+<button onclick="showAdminTab('parkomaty')" class="admin-tab-btn">
+  🅿️ Parkomaty
+</button>
+
     </div>
 
     <!-- ✅ DODAWANIE -->
@@ -937,7 +942,24 @@ Zaloguj
         <div id="usersList"></div>
       </div>
     </div>
+<div id="adminParkomaty" style="display:none;">
+  <div class="admin-card">
+    <h3>🅿️ Parkomaty</h3>
 
+    <button onclick="openAddParkomatModal()" style="
+      background:#16a34a;
+      color:white;
+      padding:10px;
+      border:none;
+      border-radius:10px;
+      margin-bottom:10px;
+    ">
+      ➕ Dodaj parkomat
+    </button>
+
+    <div id="parkomatyList"></div>
+  </div>
+</div>
   </div>
 
 </div>
@@ -1044,11 +1066,69 @@ gap:10px;
 
 </div>
 </div>
+  <!-- ✅ MODAL PARKOMAT -->
+<div id="parkomatModal" style="
+position:fixed;
+inset:0;
+background:rgba(0,0,0,0.7);
+display:none;
+justify-content:center;
+align-items:center;
+z-index:7000;
+">
+
+<div style="
+background:#020617;
+padding:16px;
+border-radius:12px;
+width:90%;
+max-width:400px;
+display:flex;
+flex-direction:column;
+gap:10px;
+">
+
+<h3 id="parkomatModalTitle">🅿️ Parkomat</h3>
+
+<input id="pm_id" placeholder="Numer">
+<input id="pm_location" placeholder="Adres">
+<input id="pm_node" placeholder="Strefa">
+<input id="pm_node2" placeholder="Miasto / struktura">
+<input id="pm_lat" placeholder="Lat">
+<input id="pm_lng" placeholder="Lng">
+<input id="pm_structure" placeholder="Structure">
+
+<button onclick="saveParkomat()" style="
+  background:#16a34a;
+  color:white;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+">
+  ✅ Zapisz
+</button>
+
+<button onclick="closeParkomatModal()" style="
+  background:#374151;
+  color:white;
+  padding:8px;
+  border:none;
+  border-radius:8px;
+">
+  Anuluj
+</button>
+
+</div>
+</div>
 <!-- ✅ JS zostaje praktycznie bez zmian -->
 <script>
 const SUPABASE_URL = "https://tiplqkdmgahdeoseahsd.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpcGxxa2RtZ2FoZGVvc2VhaHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MjgyOTIsImV4cCI6MjA5NjUwNDI5Mn0.40_rGmSdhBW2SKGG8wgrGq4--n9qT578StHVzsSD_8w";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  
+let editingUserId = null;
+let editingParkomatKey = null;
+
 window.currentUser = null;
 async function login(){
 
@@ -1208,7 +1288,7 @@ function showAdminTab(tab){
 
   document.getElementById("adminAddUser").style.display = "none";
   document.getElementById("adminManageUsers").style.display = "none";
-
+  document.getElementById("adminParkomaty").style.display = "none";
   document.querySelectorAll(".admin-tab-btn")
     .forEach(b => b.classList.remove("active"));
 
@@ -1221,6 +1301,13 @@ function showAdminTab(tab){
     document.getElementById("adminManageUsers").style.display = "block";
     document.querySelectorAll(".admin-tab-btn")[1].classList.add("active");
   }
+  
+if(tab === "parkomaty"){
+  document.getElementById("adminParkomaty").style.display = "block";
+  document.querySelectorAll(".admin-tab-btn")[2].classList.add("active");
+  renderParkomatyAdminList(); // ✅ załaduj listę
+}
+
 }
   
   document.addEventListener("change", (e) => {
@@ -2434,6 +2521,138 @@ function renderDevicesList(){
 
   document.getElementById("devicesList").innerHTML = html;
 }
+  function renderParkomatyAdminList(){
+
+  const box = document.getElementById("parkomatyList");
+
+  let html = "";
+
+  Object.values(allParkomaty)
+    .sort((a,b)=>a.id.localeCompare(b.id))
+    .forEach(p => {
+
+      html += `
+      <div class="terminal-box">
+
+        <b>${p.id}</b><br>
+        ${p.location}<br>
+        <small>${p.node_2 || p.node}</small><br>
+        <small>${p.lat}, ${p.lng}</small><br><br>
+
+        <button onclick="openEditParkomat('${makeKey(p.id,p.structure)}')"
+          style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          ✏️ Edytuj
+        </button>
+
+      </div>
+      `;
+    });
+
+  box.innerHTML = html;
+}
+  function openEditParkomat(key){
+
+  editingParkomatKey = key;
+
+  const p = allParkomaty[key];
+  if(!p) return;
+
+  document.getElementById("parkomatModalTitle").innerText = "✏️ Edytuj parkomat";
+
+  document.getElementById("pm_id").value = p.id;
+  document.getElementById("pm_id").disabled = true;
+  document.getElementById("pm_location").value = p.location;
+  document.getElementById("pm_node").value = p.node;
+  document.getElementById("pm_node2").value = p.node_2;
+  document.getElementById("pm_lat").value = p.lat;
+  document.getElementById("pm_lng").value = p.lng;
+  document.getElementById("pm_structure").value = p.structure;
+
+  document.getElementById("parkomatModal").style.display = "flex";
+}
+  function openAddParkomatModal(){
+
+  editingParkomatKey = null;
+
+  document.getElementById("parkomatModalTitle").innerText = "➕ Nowy parkomat";
+
+  document.getElementById("pm_id").value = "";
+  document.getElementById("pm_id").disabled = false;
+  document.getElementById("pm_location").value = "";
+  document.getElementById("pm_node").value = "";
+  document.getElementById("pm_node2").value = "";
+  document.getElementById("pm_lat").value = "";
+  document.getElementById("pm_lng").value = "";
+  document.getElementById("pm_structure").value = "";
+
+  document.getElementById("parkomatModal").style.display = "flex";
+}
+  async function saveParkomat(){
+
+  const obj = {
+    id: document.getElementById("pm_id").value.trim(),
+    location: document.getElementById("pm_location").value.trim(),
+    node: document.getElementById("pm_node").value.trim(),
+    node_2: document.getElementById("pm_node2").value.trim(),
+    lat: Number(document.getElementById("pm_lat").value),
+    lng: Number(document.getElementById("pm_lng").value),
+    structure: document.getElementById("pm_structure").value.trim()
+  };
+
+  
+if(!obj.id){
+  alert("❌ Brak numeru");
+  return;
+}
+
+if(isNaN(obj.lat) || isNaN(obj.lng)){
+  alert("❌ Lat/Lng muszą być liczbami");
+  return;
+}
+
+if(Math.abs(obj.lat) > 90 || Math.abs(obj.lng) > 180){
+  alert("❌ Nieprawidłowe współrzędne");
+  return;
+}
+
+
+  let error;
+
+  
+if(editingParkomatKey){
+
+  const [origId, origStructure] = editingParkomatKey.split("|");
+
+  ({ error } = await supabaseClient
+    .from("parkomaty")
+    .update(obj)
+    .eq("id", origId)
+    .eq("structure", origStructure));
+}
+else{
+    // ✅ DODAWANIE
+    ({ error } = await supabaseClient
+      .from("parkomaty")
+      .insert([obj]));
+  }
+
+  if(error){
+    console.error(error);
+    alert("❌ Błąd zapisu");
+    return;
+  }
+
+  alert("✅ Zapisano");
+
+  closeParkomatModal();
+
+  await loadParkomaty();
+  renderParkomatyAdminList();
+}
+  function closeParkomatModal(){
+  document.getElementById("parkomatModal").style.display = "none";
+}
+
   function populateUserFilter(){
 
   const select = document.getElementById("interUserFilter");
@@ -2867,7 +3086,6 @@ populateUserFilter();
   isRefreshing = false;
 }
 
-let editingUserId = null;
 
 /* ===== LOAD USERS ===== */
 async function loadUsers(){
