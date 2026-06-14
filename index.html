@@ -3165,16 +3165,17 @@ async function refreshApp(){
     loadParkomaty(),
     loadActive(),
     loadHistory(),
-    loadInterwencje()
+    loadInterwencje(),
+    loadUsers() // ✅ NOWE
   ]);
-
+  renderAdminPanel(); // ✅ struktury + checkbox
   renderAll();
 
   populateActiveEventFilter();
   populateEventFilter();
-  populateUserFilter();
+  populateUserFilter(); // ✅ ważne
 
-  // ✅ ✅ 🔥 KLUCZOWE — sprawdzenie czy admin wylogował usera
+  // ✅ sprawdzenie czy admin wylogował usera
   if(window.currentUser){
 
     const { data, error } = await supabaseClient
@@ -3187,9 +3188,9 @@ async function refreshApp(){
 
       alert("🔒 Sesja zakończona przez administratora");
 
-      isRefreshing = false; // ✅ żeby nie blokować future refresh
+      isRefreshing = false;
       logout();
-      return; // ✅ STOP dalszego działania
+      return;
     }
   }
 
