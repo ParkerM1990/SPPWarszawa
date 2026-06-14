@@ -1408,22 +1408,29 @@ if(userNodes.length && nodeVal && !userNodes.includes(nodeVal)) return false;
   return true;
 }
 
-function parseLocalDate(dateStr){
+
+
+function parseUTC(dateStr){
   if(!dateStr) return null;
 
-  const fixed = dateStr.replace(" ", "T");
-  const d = new Date(fixed);
+  const iso = dateStr
+    .replace(" ", "T")
+    .split(".")[0] + "Z";
 
-  return isNaN(d) ? null : d;
+  const d = new Date(iso);
+
+  return isNaN(d) ? null : d;  // ✅ BRAKOWAŁO
 }
   
+
 function formatDatePL(dateStr){
   if(!dateStr) return "";
 
-  const d = new Date(dateStr);
+  const d = parseUTC(dateStr);  // ✅ używamy poprawnej funkcji
 
-  if(isNaN(d)) return dateStr;
-return d.toLocaleString("pl-PL", {
+  if(!d) return dateStr;
+
+  return d.toLocaleString("pl-PL", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -1431,6 +1438,7 @@ return d.toLocaleString("pl-PL", {
     minute: "2-digit"
   });
 }
+
  
 function toLocalDateInput(date){
   const offset = date.getTimezoneOffset();
@@ -1899,7 +1907,7 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
   const now = new Date().toISOString();
 
   try{
-
+    const d = parseUTC(event.date);
     const { error } = await supabaseClient
       .from("interwencje2")
       .insert([{
@@ -1907,7 +1915,7 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
         structure: p.structure,
         location: p.location,
         event_name: event.name,
-        start_date: new Date(event.date).toISOString(),
+        start_date: d ? d.toISOString() : new Date().toISOString(),
         end_date: now,
         user_email: user,
         actions: actions,
@@ -1950,6 +1958,7 @@ if(currentService.key){
     }
 
     // ✅ 2. dodaj do historii
+    const d = parseUTC(event.date);
     const { error: historyError } = await supabaseClient
       .from("history_events")
       .insert([{
@@ -1958,7 +1967,7 @@ if(currentService.key){
         event_name: event.name,
         event_code: event.code,
         hardware: event.hardware,
-        start_date: new Date(event.date).toISOString(),
+        start_date: d ? d.toISOString() : new Date().toISOString(),
         end_date: now
       }]);
 
@@ -2146,7 +2155,7 @@ function renderActiveList(){
       
 
 
-const d = parseLocalDate(raw);
+const d = parseUTC(raw);
 if(!d) return false;
 
 
@@ -2238,7 +2247,7 @@ function renderHistoryList(){
   if (terminal && !id.toLowerCase().includes(terminal)) return;
   if (event && r.event_name !== event) return;
 
-  const d = parseLocalDate(r.start_date);
+  const d = parseUTC(r.start_date);
   if (!d) return;
 
   if (from) {
@@ -2500,7 +2509,7 @@ Do: ${formatDatePL(i.end_date)}
 
   interwencje.forEach(i => {
 
-    const d = parseLocalDate(i.start_date);
+    const d = parseUTC(i.start_date);
     if(!d) return;
 
     // ✅ filtr dat
