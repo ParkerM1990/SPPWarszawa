@@ -1425,6 +1425,9 @@ async function login(){
   
 async function checkAuth(){
 
+// ✅ zabezpieczenie — checkbox reset
+document.getElementById("rodoCheck").checked = false;
+
   const { data } = await supabaseClient.auth.getSession();
 
   if(!data.session){
@@ -1726,8 +1729,8 @@ document.querySelectorAll(".nodeCheck").forEach(el => el.checked = false);
   }
   await loadUsers();
   
-await supabaseClient.auth.signOut();
-alert("✅ Użytkownik utworzony — zaloguj się ponownie");
+
+alert("✅ Użytkownik utworzony");
 
 }
 
@@ -4042,6 +4045,55 @@ await loadUserLocations();
     });
 
   }, 30000);
+}
+  async function acceptRodo(){
+
+  const checked = document.getElementById("rodoCheck").checked;
+
+  if(!checked){
+    alert("❌ Musisz zaznaczyć zgodę");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("users")
+    .update({
+      location_consent: true
+    })
+    .eq("id", window.currentUser.id);
+
+  if(error){
+    console.error(error);
+    alert("❌ Błąd zapisu zgody");
+    return;
+  }
+
+  // ✅ zapisz lokalnie (ważne!)
+  window.currentUser.location_consent = true;
+
+  // ✅ zamknij popup
+  document.getElementById("rodoModal").style.display = "none";
+
+  // ✅ start GPS
+  startGeoTracking();
+
+  console.log("✅ RODO zaakceptowane");
+}
+  async function revokeConsent(){
+
+  await supabaseClient
+    .from("users")
+    .update({ location_consent: false })
+    .eq("id", window.currentUser.id);
+
+  await supabaseClient
+    .from("user_locations")
+    .delete()
+    .eq("user_id", window.currentUser.id);
+
+  alert("📍 Zgoda cofnięta");
+
+  location.reload();
 }
 </script>
 
