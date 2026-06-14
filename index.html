@@ -1195,42 +1195,50 @@ async function login(){
   }
 
   // ✅ UI
-document.getElementById("authBox").style.display = "none";
+  document.getElementById("authBox").style.display = "none";
 
-// ✅ 2. pobierz profil NAJPIERW
-const { data: profile } = await supabaseClient
-  .from("users")
-  .select("*")
-  .eq("id", data.user.id)
-  .single();
+  // ✅ 2. pobierz profil
+  const { data: profile } = await supabaseClient
+    .from("users")
+    .select("*")
+    .eq("id", data.user.id)
+    .single();
 
-window.currentUser = profile;
-  
+  window.currentUser = profile;
 
-if(profile && profile.is_active === false){
-  alert("⛔ Konto zablokowane");
-  await supabaseClient.auth.signOut();
-  return;
-}
+  // ✅ BLOKADA
+  if(profile && profile.is_active === false){
+    alert("⛔ Konto zablokowane");
+    await supabaseClient.auth.signOut();
+    return;
+  }
 
+  // ✅ ✅ 🔥 NOWY FRAGMENT (ONLINE STATUS)
+  await supabaseClient
+    .from("users")
+    .update({
+      is_online: true,
+      last_seen: new Date().toISOString()
+    })
+    .eq("id", data.user.id);
 
+  // ✅ DANE USERA
+  const fullName = profile?.first_name
+    ? profile.first_name + " " + (profile.last_name || "")
+    : data.user.email;
 
-// ✅ DOPIERO TERAZ używamy profile
-const fullName = profile?.first_name
-  ? profile.first_name + " " + (profile.last_name || "")
-  : data.user.email;
+  document.getElementById("userBadge").innerText = "👤 " + fullName.trim();
 
-document.getElementById("userBadge").innerText = "👤 " + fullName.trim();
-  // ✅ 3. ZASTOSUJ ROLĘ
+  // ✅ role
   applyUserRole(profile);
 
-  // ✅ 4. ŁADUJ DANE
+  // ✅ dane
   await init();
-  
-// ✅ RESET widoku
-showSection('mapSection');
 
+  // ✅ widok
+  showSection('mapSection');
 }
+  
 async function checkAuth(){
 
   const { data } = await supabaseClient.auth.getSession();
@@ -1269,12 +1277,21 @@ showSection('mapSection');
 
 async function logout(){
 
+  if(window.currentUser){
+    await supabaseClient
+      .from("users")
+      .update({
+        is_online: false
+      })
+      .eq("id", window.currentUser.id);
+  }
+
   await supabaseClient.auth.signOut();
 
   document.getElementById("authBox").style.display = "flex";
   document.getElementById("userBadge").innerText = "";
 
-  window.currentUser = null; // ✅ dodatkowe bezpieczeństwo
+  window.currentUser = null;
 
   showSection('mapSection');
 }
@@ -3560,6 +3577,20 @@ async function deletePart(name){
   await loadServiceActions();
   renderActions();
 }
+  
+setInterval(async () => {
+
+  if(!window.currentUser) return;
+
+  await supabaseClient
+    .from("users")
+    .update({
+      last_seen: new Date().toISOString()
+    })
+    .eq("id", window.currentUser.id);
+
+}, 60000);
+
 </script>
 
 </body>
