@@ -1719,9 +1719,7 @@ if(spikeError){
 
     count++;
   });
-
-  // ✅ 7. AKTUALIZUJ LICZNIK
-  document.getElementById("alarmCounter").innerText = count;
+  
 }
 
 /* ===== LOAD HISTORY ===== */
@@ -2692,6 +2690,29 @@ function showStats(){
 🔥 Wszystkie awarie: ${totalAlarms}`
   );
 }
+function updateAlarmCounter(){
+
+  const node = document.getElementById("nodeFilter").value;
+
+  let total = 0;
+  let devices = 0;
+
+  Object.keys(activeEvents).forEach(key => {
+
+    const p = allParkomaty[key];
+    if(!p) return;
+
+    if(node && getNode(p) !== node) return;
+    if(!hasAccessToParkomat(p)) return;
+
+    devices++;
+    total += activeEvents[key].length;
+  });
+
+  document.getElementById("alarmCounter").innerText =
+    `${devices} / ${total}`;
+}
+  
 function setDateRange(type){
 
   const from = document.getElementById("statsFrom");
@@ -2737,6 +2758,7 @@ function renderAll(){
   renderActiveList();
   renderHistoryList();
   renderDevicesList();
+  updateAlarmCounter()
 }
 
 /* ===== INIT ===== */
