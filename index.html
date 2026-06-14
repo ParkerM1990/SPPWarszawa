@@ -3899,6 +3899,9 @@ function startGeoTracking(){
           lng: longitude,
           updated_at: new Date().toISOString()
         });
+      
+await loadUserLocations();
+  renderMarkers();
 
       console.log("📍 zapis GPS");
 
