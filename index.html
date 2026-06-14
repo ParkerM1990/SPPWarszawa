@@ -2538,49 +2538,56 @@ function renderHistoryList(){
 
   historyEvents.forEach(r => {
 
-  const id = r.id;
-  const location = r.location || "Brak danych";
+    const key = makeKey(r.id, r.structure);
+    const p = allParkomaty[key];
 
-  if (terminal && !id.toLowerCase().includes(terminal)) return;
-  if (event && r.event_name !== event) return;
+    if(!p) return;
+    if(!hasAccessToParkomat(p)) return;
 
-  const d = parseUTC(r.start_date);
-  if (!d) return;
+    const id = r.id;
 
-  if (from) {
-    const f = new Date(from + "T00:00:00Z");
-    if (d < f) return;
-  }
+    // ✅ 🔥 NAPRAWA – filtr strefy
+    if(node && getNode(p) !== node) return;
 
-  if (to) {
-    const t = new Date(to + "T23:59:59Z");
-    if (d > t) return;
-  }
+    if (terminal && !id.toLowerCase().includes(terminal)) return;
+    if (event && r.event_name !== event) return;
 
-  html += `
-    <div class="terminal-box">
-      
-<b>Parkomat ${id}</b><br>
+    const d = parseUTC(r.start_date);
+    if (!d) return;
 
-    <small style="color:#9ca3af;">
-      ${r.hardware || "Brak danych"}
-    </small><br>
+    if (from) {
+      const f = new Date(from + "T00:00:00Z");
+      if (d < f) return;
+    }
 
+    if (to) {
+      const t = new Date(to + "T23:59:59Z");
+      if (d > t) return;
+    }
+
+    html += `
+      <div class="terminal-box">
+        
+      <b>Parkomat ${id}</b><br>
+
+      <small style="color:#9ca3af;">
+        ${r.hardware || "Brak danych"}
+      </small><br>
 
       <div class="event-name">
         ${r.event_name}
       </div>
 
-      
-Od: ${formatDatePL(r.start_date)}
-Do: ${formatDatePL(r.end_date)}
+      Od: ${formatDatePL(r.start_date)}
+      Do: ${formatDatePL(r.end_date)}
 
-    </div>
-  `;
-});
+      </div>
+    `;
+  });
 
   document.getElementById("historiaList").innerHTML = html;
 }
+``
 
 /* ===== URZĄDZENIA ===== */
 function renderDevicesList(){
