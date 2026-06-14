@@ -2671,13 +2671,31 @@ Do: ${formatDatePL(i.end_date)}
   /* ===== STATYSTYKI ===== */
 function showStats(){
 
-  const totalDevices = Object.keys(allParkomaty).length;
+  const node = document.getElementById("nodeFilter").value;
 
-  const devicesWithAlarms = Object.keys(activeEvents).length;
-
+  let totalDevices = 0;
+  let devicesWithAlarms = 0;
   let totalAlarms = 0;
-  Object.values(activeEvents).forEach(arr=>{
-    totalAlarms += arr.length;
+
+  Object.keys(allParkomaty).forEach(key => {
+
+    const p = allParkomaty[key];
+    if(!p) return;
+
+    // ✅ filtr strefy
+    if(node && getNode(p) !== node) return;
+
+    // ✅ filtr uprawnień
+    if(!hasAccessToParkomat(p)) return;
+
+    totalDevices++;
+
+    const alarms = activeEvents[key]?.length || 0;
+
+    if(alarms > 0){
+      devicesWithAlarms++;
+      totalAlarms += alarms;
+    }
   });
 
   alert(
