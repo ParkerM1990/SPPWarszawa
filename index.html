@@ -707,6 +707,12 @@ Zaloguj
   👤 <span>Admin</span>
 </button>
 
+<button class="nav-btn"
+  title="Konto"
+  onclick="setActiveNav(this);showSection('userPanel')">
+  👤 <span>Konto</span>
+</button>
+
 
 </div>
 <div class="main">
@@ -953,6 +959,48 @@ Zaloguj
 </button>
 
 <div id="interwencjeList"></div>
+</div>
+  <div id="userPanel" class="section">
+
+  <h2>👤 Moje konto</h2>
+
+  <div class="admin-card">
+
+    <h3>🔑 Hasło</h3>
+
+    <button onclick="resetPassword(window.currentUser.email)" style="
+      background:#7c3aed;
+      color:white;
+      padding:10px;
+      border:none;
+      border-radius:10px;
+    ">
+      🔑 Resetuj hasło (mail)
+    </button>
+
+  </div>
+
+  <div class="admin-card">
+
+    <h3>📍 Lokalizacja</h3>
+
+    <p style="font-size:13px;color:#9ca3af;">
+      Możesz w każdej chwili wycofać zgodę na śledzenie GPS.
+      Spowoduje to zatrzymanie wysyłania lokalizacji.
+    </p>
+
+    <button onclick="revokeConsent()" style="
+      background:#dc2626;
+      color:white;
+      padding:10px;
+      border:none;
+      border-radius:10px;
+    ">
+      ❌ Cofnij zgodę na lokalizację
+    </button>
+
+  </div>
+
 </div>
   <div id="adminPanel" class="section">
 
@@ -1240,7 +1288,57 @@ gap:10px;
 </button>
 
 </div>
+  
 </div>
+  <div id="rodoModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.8);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:10000;
+">
+
+<div style="
+  background:#020617;
+  padding:20px;
+  border-radius:12px;
+  max-width:400px;
+  width:90%;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+">
+
+<h3>📍 Zgoda na lokalizację</h3>
+
+<p style="font-size:14px; color:#cbd5f5;">
+Aplikacja wykorzystuje Twoją lokalizację GPS w celu
+monitorowania pracy serwisu oraz wsparcia działań operacyjnych.
+
+Twoja lokalizacja będzie widoczna dla administratora systemu.
+</p>
+
+<label style="display:flex; gap:6px;">
+  <input type="checkbox" id="rodoCheck">
+  Wyrażam zgodę na przetwarzanie lokalizacji
+</label>
+
+<button onclick="acceptRodo()" style="
+  background:#16a34a;
+  border:none;
+  padding:10px;
+  border-radius:8px;
+  color:white;
+">
+  ✅ Akceptuję
+</button>
+
+</div>
+</div>
+  
 <!-- ✅ JS zostaje praktycznie bez zmian -->
 <script>
 const SUPABASE_URL = "https://tiplqkdmgahdeoseahsd.supabase.co";
@@ -1256,7 +1354,7 @@ async function login(){
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  // ✅ 1. LOGOWANIE
+  // ✅ logowanie
   const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
@@ -1268,26 +1366,38 @@ async function login(){
     return;
   }
 
-  // ✅ UI
-  document.getElementById("authBox").style.display = "none";
-
-  // ✅ 2. pobierz profil
-  const { data: profile } = await supabaseClient
+  // ✅ pobierz profil
+  const { data: profile, error: profileError } = await supabaseClient
     .from("users")
     .select("*")
     .eq("id", data.user.id)
     .single();
 
+  if(profileError || !profile){
+    alert("❌ Brak profilu użytkownika");
+    console.error(profileError);
+    return;
+  }
+
   window.currentUser = profile;
 
-  // ✅ BLOKADA
-  if(profile && profile.is_active === false){
+  // ✅ blokada konta
+  if(profile.is_active === false){
     alert("⛔ Konto zablokowane");
     await supabaseClient.auth.signOut();
     return;
   }
 
-  // ✅ ✅ 🔥 NOWY FRAGMENT (ONLINE STATUS)
+  // ✅ UI
+  document.getElementById("authBox").style.display = "none";
+
+  const fullName = profile.first_name
+    ? profile.first_name + " " + (profile.last_name || "")
+    : data.user.email;
+
+  document.getElementById("userBadge").innerText = "👤 " + fullName.trim();
+
+  // ✅ ONLINE STATUS
   await supabaseClient
     .from("users")
     .update({
@@ -1296,20 +1406,20 @@ async function login(){
     })
     .eq("id", data.user.id);
 
-  // ✅ DANE USERA
-  const fullName = profile?.first_name
-    ? profile.first_name + " " + (profile.last_name || "")
-    : data.user.email;
-
-  document.getElementById("userBadge").innerText = "👤 " + fullName.trim();
-
   // ✅ role
   applyUserRole(profile);
 
   // ✅ dane
   await init();
-startGeoTracking();   // ✅ lokalizacje userów
-  // ✅ widok
+
+  // ✅ RODO
+  if(!profile.location_consent){
+    document.getElementById("rodoModal").style.display = "flex";
+  }else{
+    startGeoTracking();
+  }
+
+  // ✅ sekcja
   showSection('mapSection');
 }
   
@@ -1317,45 +1427,60 @@ async function checkAuth(){
 
   const { data } = await supabaseClient.auth.getSession();
 
-  if(data.session){
-
-    // ✅ pobierz profil
-    const { data: profile } = await supabaseClient
-      .from("users")
-      .select("*")
-      .eq("id", data.session.user.id)
-      .single();
-
-    // ✅ 🔥 KLUCZOWE – sprawdzenie statusu
-    if(!profile || profile.is_online === false || profile.is_active === false){
-      alert("🔒 Zostałeś wylogowany przez administratora");
-
-      await supabaseClient.auth.signOut();
-      document.getElementById("authBox").style.display = "flex";
-      return;
-    }
-
-    window.currentUser = profile;
-
-    // ✅ UI
-    document.getElementById("authBox").style.display = "none";
-
-    const fullName = profile?.first_name
-      ? profile.first_name + " " + (profile.last_name || "")
-      : data.session.user.email;
-
-    document.getElementById("userBadge").innerText =
-      "👤 " + fullName.trim();
-
-    applyUserRole(profile);
-
-    await init();
-    startGeoTracking();
-    showSection('mapSection');
-
-  }else{
+  if(!data.session){
     document.getElementById("authBox").style.display = "flex";
+    return;
   }
+
+  // ✅ profil
+  const { data: profile, error } = await supabaseClient
+    .from("users")
+    .select("*")
+    .eq("id", data.session.user.id)
+    .single();
+
+  if(error || !profile){
+    console.error("PROFILE ERROR:", error);
+    await supabaseClient.auth.signOut();
+    document.getElementById("authBox").style.display = "flex";
+    return;
+  }
+
+  // ✅ 🔒 wylogowanie przez admina
+  if(profile.is_online === false || profile.is_active === false){
+    alert("🔒 Zostałeś wylogowany przez administratora");
+
+    await supabaseClient.auth.signOut();
+    document.getElementById("authBox").style.display = "flex";
+    return;
+  }
+
+  window.currentUser = profile;
+
+  // ✅ UI
+  document.getElementById("authBox").style.display = "none";
+
+  const fullName = profile.first_name
+    ? profile.first_name + " " + (profile.last_name || "")
+    : data.session.user.email;
+
+  document.getElementById("userBadge").innerText =
+    "👤 " + fullName.trim();
+
+  // ✅ role
+  applyUserRole(profile);
+
+  // ✅ dane
+  await init();
+
+  // ✅ RODO (🔥 kluczowe)
+  if(!profile.location_consent){
+    document.getElementById("rodoModal").style.display = "flex";
+  }else{
+    startGeoTracking();
+  }
+
+  showSection('mapSection');
 }
   
 
@@ -1798,7 +1923,7 @@ async function loadUserLocations(){
       user: u
     };
   })
-  .filter(x => x.user?.is_online); // ✅ tylko zalogowani
+  .filter(x => x.user?.is_online && x.user?.location_consent)
 }
 /* ===== LOAD PARKOMATY ===== */
 async function loadParkomaty(){
@@ -2038,7 +2163,8 @@ function showSection(id){
     historiaSection: "📜",
     devicesSection: "🖥️",
     interwencjeSection: "🧰",
-    adminPanel: "👤"
+    adminPanel: "👤",
+    userPanel: "👤"
   };
 
   const targetBtn = [...document.querySelectorAll(".nav-btn")]
@@ -3882,6 +4008,10 @@ document.addEventListener("click", (e)=>{
   let geoStarted = false;
 
 function startGeoTracking(){
+
+if(!window.currentUser?.location_consent){
+  return;
+}
 
   if(geoStarted) return;
   geoStarted = true;
