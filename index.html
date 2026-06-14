@@ -1308,7 +1308,7 @@ async function login(){
 
   // ✅ dane
   await init();
-
+startGeoTracking();   // ✅ lokalizacje userów
   // ✅ widok
   showSection('mapSection');
 }
@@ -1350,7 +1350,7 @@ async function checkAuth(){
     applyUserRole(profile);
 
     await init();
-
+    startGeoTracking();
     showSection('mapSection');
 
   }else{
@@ -1645,6 +1645,7 @@ let markerLayer = L.layerGroup().addTo(map);
 
 /* ===== DATA ===== */
 let allParkomaty={};
+let userLocations = [];
 let activeEvents={};
 let historyEvents=[];
 const RED_CODES = ["16384","16385","16386","16900"];
@@ -1775,7 +1776,30 @@ async function loadTechnicians(){
 
   serviceParts = data.map(p => p.name);
 } 
+async function loadUserLocations(){
 
+  const { data: locs, error } = await supabaseClient
+    .from("user_locations")
+    .select("*");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  const { data: users } = await supabaseClient
+    .from("users")
+    .select("*");
+
+  userLocations = locs.map(loc => {
+    const u = users.find(x => x.id === loc.user_id);
+    return {
+      ...loc,
+      user: u
+    };
+  })
+  .filter(x => x.user?.is_online); // ✅ tylko zalogowani
+}
 /* ===== LOAD PARKOMATY ===== */
 async function loadParkomaty(){
 
@@ -2393,6 +2417,37 @@ activeEvents[key].forEach(e=>{
       maxZoom:16
     });
   }
+  // 👤 LOKALIZACJE USERÓW
+userLocations.forEach(u => {
+
+  // ✅ serwis widzi tylko siebie
+  if(window.currentUser.role !== "admin"){
+    if(u.user_id !== window.currentUser.id) return;
+  }
+
+  if(!u.lat || !u.lng) return;
+
+  const name = `${u.user?.first_name || ""} ${u.user?.last_name || ""}`;
+
+  const icon = L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width:18px;
+        height:18px;
+        border-radius:50%;
+        background:#3b82f6;
+        border:2px solid white;
+        box-shadow:0 0 6px black;
+      "></div>
+    `
+  });
+
+  L.marker([u.lat, u.lng], { icon })
+    .bindPopup(`<b>👤 ${name.trim() || "User"}</b>`)
+    .addTo(markerLayer);
+
+});
 }
 
 /* ===== FILTR AWARII (RESTORED) ===== */
@@ -3185,6 +3240,7 @@ function renderAll(){
 /* ===== INIT ===== */
 async function init(){
   await loadParkomaty();
+  await loadUserLocations();
   await loadActive();
   await loadHistory();
   await loadServiceActions();
@@ -3273,7 +3329,8 @@ async function refreshApp(){
     loadActive(),
     loadHistory(),
     loadInterwencje(),
-    loadUsers() // ✅ NOWE
+    loadUsers(), // ✅ NOWE
+    loadUserLocations()
   ]);
   renderAdminPanel(); // ✅ struktury + checkbox
   renderAll();
@@ -3817,6 +3874,37 @@ document.addEventListener("click", (e)=>{
   }
 
   renderAll(); // 🔥 od razu filtruj
+}
+  let geoStarted = false;
+
+function startGeoTracking(){
+
+  if(geoStarted) return;
+  geoStarted = true;
+
+  setInterval(() => {
+
+    if (!window.currentUser) return;
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(async pos => {
+
+      const { latitude, longitude } = pos.coords;
+
+      await supabaseClient
+        .from("user_locations")
+        .upsert({
+          user_id: window.currentUser.id,
+          lat: latitude,
+          lng: longitude,
+          updated_at: new Date().toISOString()
+        });
+
+      console.log("📍 zapis GPS");
+
+    });
+
+  }, 30000);
 }
 </script>
 
