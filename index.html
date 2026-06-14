@@ -3229,8 +3229,13 @@ function renderUsers(users){
       <small>Rola: ${u.role}</small><br>
       ${(() => {
 
-  const isOnline = u.is_online &&
-    (new Date() - new Date(u.last_seen)) < 120000;
+  const lastSeenMs = u.last_seen
+  ? Date.parse(u.last_seen)
+  : 0;
+
+const diff = Date.now() - lastSeenMs;
+
+const isOnline = u.is_online && diff < 300000;
 
   return `
     <small>
