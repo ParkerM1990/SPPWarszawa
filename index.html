@@ -957,6 +957,22 @@ Zaloguj
       ➕ Dodaj parkomat
     </button>
 
+<input 
+      type="text"
+      id="parkomatSearch"
+      placeholder="🔎 Szukaj numeru lub adresu..."
+      oninput="renderParkomatyAdminList()"
+      style="
+        width:100%;
+        padding:10px;
+        border-radius:10px;
+        border:1px solid #1f2937;
+        background:#020617;
+        color:white;
+        margin-bottom:10px;
+      "
+    >
+
     <div id="parkomatyList"></div>
   </div>
 </div>
@@ -2525,19 +2541,40 @@ function renderDevicesList(){
 
   const box = document.getElementById("parkomatyList");
 
+  const search = (document.getElementById("parkomatSearch")?.value || "")
+    .toLowerCase()
+    .trim();
+
+  let filtered = Object.values(allParkomaty)
+    .sort((a,b)=>a.id.localeCompare(b.id));
+
+  // ✅ FILTR
+  if(search){
+    filtered = filtered.filter(p => {
+
+      const text = `${p.id} ${p.location}`.toLowerCase();
+
+      return text.includes(search);
+    });
+  }
+
   let html = "";
 
-  Object.values(allParkomaty)
-    .sort((a,b)=>a.id.localeCompare(b.id))
-    .forEach(p => {
+  filtered.forEach(p => {
 
-      html += `
+    html += `
       <div class="terminal-box">
 
         <b>${p.id}</b><br>
         ${p.location}<br>
-        <small>${p.node_2 || p.node}</small><br>
-        <small>${p.lat}, ${p.lng}</small><br><br>
+
+        <small style="color:#9ca3af;">
+          ${p.node_2 || p.node}
+        </small><br>
+
+        <small>
+          ${p.lat}, ${p.lng}
+        </small><br><br>
 
         <button onclick="openEditParkomat('${makeKey(p.id,p.structure)}')"
           style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:6px;">
@@ -2545,8 +2582,12 @@ function renderDevicesList(){
         </button>
 
       </div>
-      `;
-    });
+    `;
+  });
+
+  if(filtered.length === 0){
+    html = `<div style="padding:10px;">❌ Brak wyników</div>`;
+  }
 
   box.innerHTML = html;
 }
