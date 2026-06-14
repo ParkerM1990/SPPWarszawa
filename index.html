@@ -3235,7 +3235,7 @@ function renderUsers(users){
 
 const diff = Date.now() - lastSeenMs;
 
-const isOnline = u.is_online && diff < 300000;
+const isOnline = u.is_online;
 
   return `
     <small>
