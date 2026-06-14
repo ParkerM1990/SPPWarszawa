@@ -528,7 +528,57 @@ input[type="date"] {
   border-radius:6px;
   cursor:pointer;
 }
+.multi-select{
+  position:relative;
+  width:100%;
+}
 
+.select-box{
+  background:#020617;
+  border:1px solid #1f2937;
+  padding:6px 8px;
+  border-radius:8px;
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13px;
+}
+
+.options{
+  position:absolute;
+  top:105%;
+  left:0;
+  right:0;
+  background:#020617;
+  border:1px solid #1f2937;
+  border-radius:10px;
+  max-height:200px;
+  overflow:auto;
+  z-index:3000;
+  padding:6px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.options.hidden{
+  display:none;
+}
+
+.options label{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  cursor:pointer;
+  font-size:13px;
+  padding:4px;
+  border-radius:6px;
+}
+
+.options label:hover{
+  background:#111827;
+}
 
 </style>
 </head>
@@ -666,10 +716,19 @@ Zaloguj
 
   <div class="filter-bar mobile">
     
+
 <div class="filter-item">
   <span>📍</span>
-  <div id="nodeFilterBox"></div>
-</div>
+
+  <div class="multi-select" id="nodeMultiSelect">
+    <div class="select-box" onclick="toggleNodeDropdown()">
+      <span id="nodeSelectedText">Wybierz strefy</span>
+      ▼
+    </div>
+
+    <div class="options hidden" id="nodeOptions"></div>
+  </div>
+
 
     
  <!-- ✅ NOWY PRÓG -->
@@ -2547,7 +2606,7 @@ function renderDevicesList(){
     `.toLowerCase();
 
     if(search && !text.includes(search)) return;
-    if(nodes.length && !nodes.includes(getNode(p))) return;
+    if(node && getNode(p) !== node) return;
 
     const key = makeKey(p.id, p.structure);
 
@@ -3128,11 +3187,29 @@ async function init(){
   await loadInterwencje();
   await loadUsers();
   populateUserFilter();
-  populateActiveEventFilter();
-  populateEventFilter();
-  renderAdminPanel();
-  renderAll();
-  setInterval(refreshApp, 300000); // co 30s
+populateActiveEventFilter();
+populateEventFilter();
+renderAdminPanel();
+renderAll();
+
+
+// realtime
+if(!window.realtimeSubscribed){
+  supabaseClient
+    .channel('active_events_channel')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'active_events' },
+      () => refreshApp()
+    )
+    .subscribe();
+
+  window.realtimeSubscribed = true;
+}
+
+// backup co 10 min (na wszelki wypadek)
+setInterval(refreshApp, 600000);
+
 }
 
 const hash = window.location.hash;
@@ -3689,22 +3766,52 @@ async function forceLogout(userId){
   loadUsers();
 }
   function renderNodeFilter(nodes){
-
-  const box = document.getElementById("nodeFilterBox");
+  const box = document.getElementById("nodeOptions");
 
   box.innerHTML = nodes.map(n => `
-    <label style="display:flex; gap:6px; font-size:13px;">
-      <input type="checkbox" value="${n}" onchange="renderAll()">
+    <label>
+      <input type="checkbox" value="${n}" onchange="updateNodeSelection()">
       ${n}
     </label>
   `).join('');
+
+  updateNodeSelection();
 }
   
 function getSelectedNodes(){
-  return [...document.querySelectorAll("#nodeFilterBox input:checked")]
+  return [...document.querySelectorAll("#nodeOptions input:checked")]
     .map(i => i.value);
 }
+function toggleNodeDropdown(){
+  document.getElementById("nodeOptions").classList.toggle("hidden");
+}
 
+// zamknij po kliknięciu poza
+document.addEventListener("click", (e)=>{
+  const el = document.getElementById("nodeMultiSelect");
+  if(!el.contains(e.target)){
+    document.getElementById("nodeOptions").classList.add("hidden");
+  }
+});
+  function updateNodeSelection(){
+
+  const selected = [...document.querySelectorAll("#nodeOptions input:checked")]
+    .map(i => i.value);
+
+  const label = document.getElementById("nodeSelectedText");
+
+  if(selected.length === 0){
+    label.innerText = "Wszystkie strefy";
+  }
+  else if(selected.length <= 2){
+    label.innerText = selected.join(", ");
+  }
+  else{
+    label.innerText = `${selected.length} wybranych`;
+  }
+
+  renderAll(); // 🔥 od razu filtruj
+}
 </script>
 
 </body>
