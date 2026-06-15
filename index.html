@@ -3563,12 +3563,22 @@ async function refreshApp(){
   // ✅ 🔐 TU WSTAWIASZ
   const { data: sessionData } = await supabaseClient.auth.getSession();
 
-  if(!sessionData.session){
-    alert("🔒 Sesja wygasła");
-    isRefreshing = false;
-    logout();
-    return;
-  }
+  
+if(!sessionData.session){
+
+  // ✅ 🔥 DODAJ TO
+  await supabaseClient
+    .from("users")
+    .update({ is_online: false })
+    .eq("id", window.currentUser.id);
+
+  alert("🔒 Sesja wygasła");
+
+  isRefreshing = false;
+  logout();
+  return;
+}
+
 
   const expiresAt = sessionData.session.expires_at * 1000;
   if(Date.now() > expiresAt){
