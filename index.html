@@ -1927,27 +1927,16 @@ async function loadUserLocations(){
 
   const { data, error } = await supabaseClient
     .from("user_locations_full")
-    .select("*");
+    .select("*")
+    .eq("is_online", true)
+    .eq("location_consent", true);
 
   if(error){
     console.error(error);
     return;
   }
 
-  
-const { data, error } = await supabaseClient
-  .from("user_locations_full")
-  .select("*")
-  .eq("is_online", true)
-  .eq("location_consent", true);
-
-if(error){
-  console.error(error);
-  return;
-}
-
-userLocations = data;
-
+  userLocations = data;
 }
 /* ===== LOAD PARKOMATY ===== */
 async function loadParkomaty(){
