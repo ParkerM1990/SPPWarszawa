@@ -3075,13 +3075,7 @@ function renderInterwencje(){
     if(!p) return;
     if(!hasAccessToParkomat(p)) return;
 
-    if(!isAdmin){
-      const fullName =
-        (window.currentUser?.first_name || "") + " " +
-        (window.currentUser?.last_name || "");
-
-      if(i.user_email !== fullName.trim()) return;
-    }
+    // ✅ tylko serwis filtrujemyif(window.currentUser?.role !== "admin"){  const fullName =    (window.currentUser?.first_name || "") + " " +    (window.currentUser?.last_name || "");  if(i.user_email !== fullName.trim()) return;}
 
     if(terminal && !(i.device_id || "").toLowerCase().includes(terminal)) return;
     if(isAdmin && userInput && i.user_email !== userInput) return;
