@@ -2530,7 +2530,7 @@ markerLayer.clearLayers();
       return;
     }
 
-    const name = `${u.user?.first_name || ""} ${u.user?.last_name || ""}`;
+    const name = `${u.first_name || ""} ${u.last_name || ""}`;
 
     const icon = L.divIcon({
       className: '',
