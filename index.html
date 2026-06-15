@@ -1798,7 +1798,8 @@ map.getPane('labels').style.pointerEvents = 'none';
 labels.addTo(map);
 
 // Twoje markery
-let markerLayer = L.layerGroup().addTo(map);
+let markerLayer = L.layerGroup().addTo(map);  // ✅ parkomaty
+let userLayer = L.layerGroup().addTo(map);   // ✅ Uzytkownicy
 
 /* ===== DATA ===== */
 let allParkomaty={};
@@ -2493,7 +2494,7 @@ if(currentService.key){
 
 /* ===== MAP + AUTO CENTER ===== */
 function renderMarkers(){
-
+markerLayer.clearLayers();
   const nodes = getSelectedNodes();
 
   let points = [];
@@ -2592,7 +2593,7 @@ function renderMarkers(){
     .bindPopup(`
       <b>👤 ${name.trim() || "User"}</b><br>
     `)
-    .addTo(markerLayer);
+    .addTo(userLayer);
 
 }else{
 
@@ -2608,7 +2609,7 @@ Object.keys(userMarkers).forEach(id => {
   const exists = userLocations.find(u => u.user_id === id);
 
   if(!exists){
-    map.removeLayer(userMarkers[id]);
+    userLayer.removeLayer(userMarkers[id]);
     delete userMarkers[id];
   }
 
