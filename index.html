@@ -1437,7 +1437,7 @@ document.getElementById("rodoCheck").checked = false;
 
   // ✅ profil
   const { data: profile, error } = await supabaseClient
-    .from("users")
+    .from("users_status")
     .select("*")
     .eq("id", data.session.user.id)
     .single();
@@ -1484,43 +1484,6 @@ document.getElementById("rodoCheck").checked = false;
   }
 
   showSection('mapSection');
-}
-  async function checkUserSessionValidity(userId){
-
-  try{
-
-    const { data } = await supabaseClient.auth.getSession();
-
-    // ✅ brak sesji → user offline logicznie
-    if(!data.session){
-      return {
-        valid: false,
-        reason: "Brak sesji"
-      };
-    }
-
-    // ✅ sprawdź czy token nie wygasł
-    const expiresAt = data.session.expires_at * 1000;
-    const now = Date.now();
-
-    if(now > expiresAt){
-      return {
-        valid: false,
-        reason: "Token wygasł"
-      };
-    }
-
-    return {
-      valid: true,
-      reason: "OK"
-    };
-
-  }catch(e){
-    return {
-      valid: false,
-      reason: "Błąd sesji"
-    };
-  }
 }
 
 async function logout(){
@@ -1855,24 +1818,6 @@ function getNode(p){
   return p.node;
 }
 
-function hasAccessToParkomat(p){
-
-  // ✅ admin widzi wszystko
-  if(window.currentUser?.role === "admin") return true;
-
-  const userNodes = window.currentUser?.nodes || [];
-
-  // ✅ brak przypisanych stref = brak dostępu
-  
-const nodeVal = getNode(p);
-if(userNodes.length && nodeVal && !userNodes.includes(nodeVal)) return false;
-
-
-  return true;
-}
-
-
-
 function parseUTC(dateStr){
   if(!dateStr) return null;
 
@@ -1947,8 +1892,7 @@ serviceActions = data
 async function loadTechnicians(){
 
   const { data, error } = await supabaseClient
-    .from("users")
-    .select("*");
+    .from("users_status").select("*");
 
   if(error){
     console.error("BŁĄD USERS:", error);
@@ -1981,8 +1925,8 @@ serviceParts = data
 } 
 async function loadUserLocations(){
 
-  const { data: locs, error } = await supabaseClient
-    .from("user_locations")
+  const { data, error } = await supabaseClient
+    .from("user_locations_full")
     .select("*");
 
   if(error){
@@ -1990,18 +1934,20 @@ async function loadUserLocations(){
     return;
   }
 
-  const { data: users } = await supabaseClient
-    .from("users")
-    .select("*");
+  
+const { data, error } = await supabaseClient
+  .from("user_locations_full")
+  .select("*")
+  .eq("is_online", true)
+  .eq("location_consent", true);
 
-  userLocations = locs.map(loc => {
-    const u = users.find(x => x.id === loc.user_id);
-    return {
-      ...loc,
-      user: u
-    };
-  })
-  .filter(x => x.user?.is_online && x.user?.location_consent)
+if(error){
+  console.error(error);
+  return;
+}
+
+userLocations = data;
+
 }
 /* ===== LOAD PARKOMATY ===== */
 async function loadParkomaty(){
@@ -2052,23 +1998,9 @@ allData.forEach(p => {
   allParkomaty[key] = park;
 
   // ✅ 🔥 FILTR UPRAWNIEŃ
- 
-const userNodes = window.currentUser?.nodes || [];
-
 const nodeVal = getNode(park);
-
-// ✅ ADMIN widzi wszystko
-if(window.currentUser?.role === "admin"){
-  if(nodeVal) nodeSet.add(nodeVal);
+if(nodeVal) nodeSet.add(nodeVal);
 }
-else{
-  // ✅ zwykły user – tylko swoje node
-  if(userNodes.length && nodeVal && userNodes.includes(nodeVal)){
-    nodeSet.add(nodeVal);
-  }
-}
-
-
 });
 
   console.log("✅ ZAŁADOWANO:", allData.length);
@@ -2319,9 +2251,10 @@ event: {
   const deviceSelect = document.getElementById("deviceSelect");
 
   
+
 deviceOptionsCache = Object.values(allParkomaty)
-  .filter(p => hasAccessToParkomat(p))
   .sort((a,b)=>a.id.localeCompare(b.id));
+
 
 renderDeviceOptions(deviceOptionsCache);
 document.getElementById("deviceSearchInput").value = "";
@@ -2423,12 +2356,6 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
     return;
   }
 
-  // ✅ 🔥 KLUCZ – SPRAWDZENIE UPRAWNIEŃ
-  if(!hasAccessToParkomat(p)){
-    alert("❌ Brak uprawnień do tego parkomatu");
-    return;
-  }
-
   const now = new Date().toISOString();
 
   try{
@@ -2442,6 +2369,7 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
         event_name: event.name,
         start_date: d ? d.toISOString() : new Date().toISOString(),
         end_date: now,
+        user_id: window.currentUser.id, // ✅ KLUCZOWE
         user_email: user,
         actions: actions,
         parts: parts,
@@ -2548,7 +2476,6 @@ markerLayer.clearLayers();
 
     const p = allParkomaty[key];
     if(!p) return;
-    if(!hasAccessToParkomat(p)) return;
     if(nodes.length && !nodes.includes(getNode(p))) return;
 
     let popup = `<b>Parkomat ${p.id}</b><br>${p.location}<br><br>`;
@@ -2720,7 +2647,6 @@ function renderActiveList(){
 
     const p = allParkomaty[key];
     if(!p) return;
-    if(!hasAccessToParkomat(p)) return;
     const id = p.id;
 
     const filtered = activeEvents[key].filter(e => {
@@ -2822,7 +2748,6 @@ function renderHistoryList(){
     const p = allParkomaty[key];
 
     if(!p) return;
-    if(!hasAccessToParkomat(p)) return;
 
     const id = r.id;
 
@@ -2884,7 +2809,6 @@ function renderDevicesList(){
   .forEach(p=>{
 
     // ✅ 🔥 NAJWAŻNIEJSZE – filtr uprawnień
-    if(!hasAccessToParkomat(p)) return;
 
     const text = `
       ${p.id}
@@ -3146,9 +3070,6 @@ function renderInterwencje(){
     const p = allParkomaty[key];
 
     if(!p) return;
-    if(!hasAccessToParkomat(p)) return;
-
-    // ✅ tylko serwis filtrujemyif(window.currentUser?.role !== "admin"){  const fullName =    (window.currentUser?.first_name || "") + " " +    (window.currentUser?.last_name || "");  if(i.user_email !== fullName.trim()) return;}
 
     if(terminal && !(i.device_id || "").toLowerCase().includes(terminal)) return;
     if(isAdmin && userInput && i.user_email !== userInput) return;
@@ -3361,7 +3282,6 @@ const nodes = getSelectedNodes();
     if(nodes.length && !nodes.includes(getNode(p))) return;
 
     // ✅ filtr uprawnień
-    if(!hasAccessToParkomat(p)) return;
 
     totalDevices++;
 
@@ -3398,7 +3318,6 @@ const nodes = getSelectedNodes();
     if(!p) return;
 
    if(nodes.length && !nodes.includes(getNode(p))) return;
-    if(!hasAccessToParkomat(p)) return;
 
     devices++;
     total += activeEvents[key].length;
@@ -3636,8 +3555,7 @@ await loadUserLocations();
 async function loadUsers(){
 
   const { data, error } = await supabaseClient
-    .from("users")
-    .select("*");
+    .from("users_status").select("*");
 
   if(error){
     console.error(error);
@@ -3653,7 +3571,7 @@ function renderUsers(users){
   const html = users.map(u => {
 
     const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim();
-    const isOnline = u.is_online === true;
+    const isOnline = u.session_status === "online";
 
     const statusHtml = `
       <small>
@@ -3668,28 +3586,10 @@ function renderUsers(users){
         <span style="color:#9ca3af;">
           Ostatnio: ${u.last_seen ? formatDatePL(u.last_seen) : "-"}
           <br>
-          <span id="session_${u.id}">⏳ sprawdzanie...</span>
         </span>
       </small>
       <br><br>
     `;
-
-    // ✅ async sprawdzanie sesji (po renderze)
-    setTimeout(async () => {
-      try {
-        const result = await checkUserSessionValidity(u.id);
-        const el = document.getElementById("session_" + u.id);
-
-        if(!el) return;
-
-        el.innerHTML = result.valid
-          ? `<span style="color:#16a34a">✅ sesja OK</span>`
-          : `<span style="color:#dc2626">❌ ${result.reason}</span>`;
-
-      } catch(e){
-        console.error("SESSION CHECK ERROR:", e);
-      }
-    }, 0);
 
     return `
       <div class="terminal-box">
@@ -3738,7 +3638,7 @@ async function openEditUser(id){
   editingUserId = id;
 
   const { data } = await supabaseClient
-    .from("users")
+    .from("users_status")
     .select("*")
     .eq("id", id)
     .single();
