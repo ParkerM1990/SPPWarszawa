@@ -1767,13 +1767,19 @@ let deviceOptionsCache = [];
 let serviceParts = [];
 
 /* ===== MAPA ===== */
-let map = L.map('map').setView([52.23218280963405, 21.007884183479632],12);
 
-L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}', {
-  attribution: '&copy; Stadia Maps & OpenMapTiles & OpenStreetMap contributors',
-  ext: 'png',   // ✅ KLUCZOWE
-  maxZoom: 20
-}).addTo(map);
+let map = L.map('map').setView([52.23218, 21.00788], 12);
+
+var Stadia_AlidadeSmoothDark = L.tileLayer(
+  'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}',
+  {
+    minZoom: 0,
+    maxZoom: 20,
+    attribution: '&copy; Stadia Maps & OpenMapTiles & OpenStreetMap contributors',
+    ext: 'png'
+  }
+);
+
 
 let markerLayer = L.layerGroup().addTo(map);
 
