@@ -1774,6 +1774,7 @@ let markerLayer = L.layerGroup().addTo(map);
 /* ===== DATA ===== */
 let allParkomaty={};
 let userLocations = [];
+let userMarkers = {};
 let activeEvents={};
 let historyEvents=[];
 const RED_CODES = ["16384","16385","16386","16900"];
@@ -2465,7 +2466,6 @@ if(currentService.key){
 function renderMarkers(){
 
   const nodes = getSelectedNodes();
-  markerLayer.clearLayers();
 
   let points = [];
 
@@ -2557,16 +2557,35 @@ function renderMarkers(){
       `
     });
 
-    L.marker([u.lat, u.lng], { icon })
-      .bindPopup(`
-        <b>👤 ${name.trim() || "User"}</b><br>
-        <small>${u.user?.email || ""}</small>
-      `)
-      .addTo(markerLayer);
+    if(!userMarkers[u.user_id]){
+
+  userMarkers[u.user_id] = L.marker([u.lat, u.lng], { icon })
+    .bindPopup(`
+      <b>👤 ${name.trim() || "User"}</b><br>
+      <small>${u.user?.email || ""}</small>
+    `)
+    .addTo(markerLayer);
+
+}else{
+
+  userMarkers[u.user_id].setLatLng([u.lat, u.lng]); // ✅ przesunięcie zamiast resetu
+}
 
     // ✅ FIX (tu musi być u, NIE p)
     points.push([u.lat, u.lng]);
   });
+  
+Object.keys(userMarkers).forEach(id => {
+
+  const exists = userLocations.find(u => u.user_id === id);
+
+  if(!exists){
+    map.removeLayer(userMarkers[id]);
+    delete userMarkers[id];
+  }
+
+});
+
 
   // ✅ CENTROWANIE MAPY
   if(points.length === 0){
