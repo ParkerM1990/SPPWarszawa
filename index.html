@@ -3593,14 +3593,13 @@ if(window.currentUser){
   }
 
   // ✅ RESZTA BEZ ZMIAN
-  await Promise.all([
-    loadParkomaty(),
-    loadActive(),
-    loadHistory(),
-    loadInterwencje(),
-    loadUsers(),
-    loadUserLocations()
-  ]);
+ 
+await loadUsers();
+await loadParkomaty();
+await loadActive();
+await loadHistory();
+await loadInterwencje();
+await loadUserLocations();
 
   renderAdminPanel();
   renderAll();
