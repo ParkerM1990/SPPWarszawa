@@ -3567,12 +3567,16 @@ async function refreshApp(){
 if(!sessionData.session){
 
   // ✅ 🔥 DODAJ TO
-  await supabaseClient
-    .from("users")
-    .update({ is_online: false })
-    .eq("id", window.currentUser.id);
+  
+if(window.currentUser){
+    await supabaseClient
+      .from("users")
+      .update({ is_online: false })
+      .eq("id", window.currentUser.id);
+  }
 
   alert("🔒 Sesja wygasła");
+
 
   isRefreshing = false;
   logout();
