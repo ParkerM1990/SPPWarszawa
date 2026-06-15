@@ -1768,7 +1768,13 @@ let serviceParts = [];
 
 /* ===== MAPA ===== */
 let map = L.map('map').setView([52.23218280963405, 21.007884183479632],12);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+
+L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}', {
+  attribution: '&copy; Stadia Maps & OpenMapTiles & OpenStreetMap contributors',
+  ext: 'png',   // ✅ KLUCZOWE
+  maxZoom: 20
+}).addTo(map);
+
 let markerLayer = L.layerGroup().addTo(map);
 
 /* ===== DATA ===== */
