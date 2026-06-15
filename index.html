@@ -3459,16 +3459,16 @@ function renderAll(){
 /* ===== INIT ===== */
 
 async function init(){
-
-  await loadParkomaty();
-  await loadUserLocations();
+  await loadUsers();          // ✅ MUSI być FIRST
+  await loadParkomaty();      // ✅ zależy od usera
   await loadActive();
   await loadHistory();
+  await loadInterwencje();
+  await loadUserLocations();  // ✅ po users
   await loadServiceActions();
   await loadParts();
   await loadTechnicians();
-  await loadInterwencje();
-  await loadUsers();
+
 
   populateUserFilter();
   populateActiveEventFilter();
@@ -3650,97 +3650,86 @@ async function loadUsers(){
 /* ===== LIST ===== */
 function renderUsers(users){
 
-  document.getElementById("usersList").innerHTML = users.map(u => {
+  const html = users.map(u => {
 
     const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim();
+    const isOnline = u.is_online === true;
+
+    const statusHtml = `
+      <small>
+        Status: ${u.is_active !== false ? "✅ aktywny" : "⛔ zablokowany"}
+        <br>
+        Online: ${
+          isOnline
+            ? '<span style="color:#16a34a;font-weight:bold;">🟢 ONLINE</span>'
+            : '<span style="color:#6b7280;">⚫ offline</span>'
+        }
+        <br>
+        <span style="color:#9ca3af;">
+          Ostatnio: ${u.last_seen ? formatDatePL(u.last_seen) : "-"}
+          <br>
+          <span id="session_${u.id}">⏳ sprawdzanie...</span>
+        </span>
+      </small>
+      <br><br>
+    `;
+
+    // ✅ async sprawdzanie sesji (po renderze)
+    setTimeout(async () => {
+      try {
+        const result = await checkUserSessionValidity(u.id);
+        const el = document.getElementById("session_" + u.id);
+
+        if(!el) return;
+
+        el.innerHTML = result.valid
+          ? `<span style="color:#16a34a">✅ sesja OK</span>`
+          : `<span style="color:#dc2626">❌ ${result.reason}</span>`;
+
+      } catch(e){
+        console.error("SESSION CHECK ERROR:", e);
+      }
+    }, 0);
 
     return `
-    <div class="terminal-box">
+      <div class="terminal-box">
 
-      <b>${fullName || u.email}</b><br>
-      ${u.email}<br>
-      <small>Rola: ${u.role}</small><br>
-      ${(() => {
+        <b>${fullName || u.email}</b><br>
+        ${u.email}<br>
+        <small>Rola: ${u.role}</small><br>
 
-  const lastSeenMs = u.last_seen
-  ? Date.parse(u.last_seen)
-  : 0;
+        ${statusHtml}
 
-const diff = Date.now() - lastSeenMs;
+        <button onclick="openEditUser('${u.id}')"
+          style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          ✏️ Edytuj
+        </button>
 
+        <button onclick="forceLogout('${u.id}')"
+          style="background:#f59e0b;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          🔌 Wyloguj
+        </button>
 
-let sessionInfo = "⏳ sprawdzanie...";
+        <button onclick="toggleUser('${u.id}', ${u.is_active !== false})"
+          style="background:#f59e0b;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          ${u.is_active !== false ? "🚫 Zablokuj" : "✅ Odblokuj"}
+        </button>
 
-(async () => {
+        <button onclick="resetPassword('${u.email}')"
+          style="background:#7c3aed;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          🔑 Hasło
+        </button>
 
-  const result = await checkUserSessionValidity(u.id);
+        <button onclick="deleteUser('${u.id}')"
+          style="background:#dc2626;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          🗑️ Usuń
+        </button>
 
-  const el = document.getElementById("session_" + u.id);
-
-  if(!el) return;
-
-  if(result.valid){
-    el.innerHTML = `<span style="color:#16a34a">✅ sesja OK</span>`;
-  }else{
-    el.innerHTML = `<span style="color:#dc2626">❌ ${result.reason}</span>`;
-  }
-
-})();
-
-
-  return `
-    <small>
-      Status: ${u.is_active !== false ? "✅ aktywny" : "⛔ zablokowany"}
-      <br>
-      Online: ${
-        isOnline
-          ? '<span style="color:#16a34a;font-weight:bold;">🟢 ONLINE</span>'
-          : '<span style="color:#6b7280;">⚫ offline</span>'
-      }
-      <br>
-      <span style="color:#9ca3af;">
-        Ostatnio: ${
-          u.last_seen
-            ? formatDatePL(u.last_seen)
-            : "-"
-        }
-        
-<br>
-<span id="session_${u.id}">⏳ sprawdzanie...</span>
-      </span>
-    </small>
-    <br><br>
-  `;
-})()}
-
-      <button onclick="openEditUser('${u.id}')"
-        style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:6px;">
-        ✏️ Edytuj
-      </button>
-    
-<button onclick="forceLogout('${u.id}')"
-  style="background:#f59e0b;color:white;border:none;padding:6px 10px;border-radius:6px;">
-  🔌 Wyloguj
-</button>
-
-      <button onclick="toggleUser('${u.id}', ${u.is_active !== false})"
-        style="background:#f59e0b;color:white;border:none;padding:6px 10px;border-radius:6px;">
-        ${u.is_active !== false ? "🚫 Zablokuj" : "✅ Odblokuj"}
-      </button>
-
-      <button onclick="resetPassword('${u.email}')"
-        style="background:#7c3aed;color:white;border:none;padding:6px 10px;border-radius:6px;">
-        🔑 Hasło
-      </button>
-
-      <button onclick="deleteUser('${u.id}')"
-        style="background:#dc2626;color:white;border:none;padding:6px 10px;border-radius:6px;">
-        🗑️ Usuń
-      </button>
-
-    </div>
+      </div>
     `;
   }).join("");
+
+  document.getElementById("usersList").innerHTML = html;
 }
 
 /* ===== EDIT OPEN ===== */
