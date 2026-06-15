@@ -2697,7 +2697,7 @@ filtered.forEach(e => {
     • <b>${e.hardware || "Inne"}</b> – ${e.name}<br>
     <small>${formatDatePL(e.date)}</small><br>
 
-    <button onclick="openServiceModal('${key}', ${JSON.stringify(e).replace(/"/g,'&quot;')})"
+    <button onclick="openServiceModal('${key}', ${JSON.stringify(e).replace(/"/g,'\\\"')})"
       style="
         margin-top:6px;
         background:#2563eb;
