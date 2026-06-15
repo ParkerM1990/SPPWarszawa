@@ -1768,18 +1768,36 @@ let serviceParts = [];
 
 /* ===== MAPA ===== */
 
-let map = L.map('map').setView([52.23218, 21.00788], 12);
+let map = L.map('map', {
+  zoomControl: true
+}).setView([52.23218, 21.00788], 12);
 
-L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}',
+// ✅ baza – dark jak Stadia
+var darkBase = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
   {
-    minZoom: 0,
     maxZoom: 20,
-    attribution: '&copy; Stadia Maps & OpenMapTiles & OpenStreetMap contributors',
-    ext: 'png'
+    attribution: '&copy; OpenStreetMap & Carto'
+  }
+).addTo(map);
+
+// ✅ LABELS (nakładka – daje efekt jak Stadia)
+var labels = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
+  {
+    pane: 'labels',
+    attribution: '&copy; OpenStreetMap & Carto'
   }
 );
 
+// 🔥 specjalna warstwa nad mapą
+map.createPane('labels');
+map.getPane('labels').style.zIndex = 650;
+map.getPane('labels').style.pointerEvents = 'none';
 
+labels.addTo(map);
+
+// Twoje markery
 let markerLayer = L.layerGroup().addTo(map);
 
 /* ===== DATA ===== */
