@@ -1900,7 +1900,11 @@ async function loadServiceActions(){
     return;
   }
 
-  serviceActions = data.map(a => a.name);
+ 
+serviceActions = data
+  .map(a => a.name)
+  .sort((a, b) => a.localeCompare(b, 'pl'));
+
 }
 
 
@@ -1933,7 +1937,11 @@ async function loadTechnicians(){
     return;
   }
 
-  serviceParts = data.map(p => p.name);
+  
+serviceParts = data
+  .map(p => p.name)
+  .sort((a, b) => a.localeCompare(b, 'pl'));
+
 } 
 async function loadUserLocations(){
 
