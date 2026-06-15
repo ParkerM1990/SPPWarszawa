@@ -2562,7 +2562,6 @@ function renderMarkers(){
   userMarkers[u.user_id] = L.marker([u.lat, u.lng], { icon })
     .bindPopup(`
       <b>👤 ${name.trim() || "User"}</b><br>
-      <small>${u.user?.email || ""}</small>
     `)
     .addTo(markerLayer);
 
