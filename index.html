@@ -1770,8 +1770,7 @@ let serviceParts = [];
 
 let map = L.map('map').setView([52.23218, 21.00788], 12);
 
-var Stadia_AlidadeSmoothDark = L.tileLayer(
-  'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}',
+L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}',
   {
     minZoom: 0,
     maxZoom: 20,
