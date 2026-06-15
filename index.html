@@ -3371,7 +3371,9 @@ function renderAll(){
 }
 
 /* ===== INIT ===== */
+
 async function init(){
+
   await loadParkomaty();
   await loadUserLocations();
   await loadActive();
@@ -3381,30 +3383,45 @@ async function init(){
   await loadTechnicians();
   await loadInterwencje();
   await loadUsers();
+
   populateUserFilter();
-populateActiveEventFilter();
-populateEventFilter();
-renderAdminPanel();
-renderAll();
+  populateActiveEventFilter();
+  populateEventFilter();
 
+  renderAdminPanel();
+  renderAll();
 
-// realtime
-if(!window.realtimeSubscribed){
-  supabaseClient
-    .channel('active_events_channel')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'active_events' },
-      () => refreshApp()
-    )
-    .subscribe();
+  // ✅ REALTIME (tylko raz)
+  if(!window.realtimeSubscribed){
 
-  window.realtimeSubscribed = true;
-}
+    // 🔴 ACTIVE EVENTS
+    supabaseClient
+      .channel('active_events_channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'active_events' },
+        () => refreshApp()
+      )
+      .subscribe();
 
-// backup co 10 min (na wszelki wypadek)
-setInterval(refreshApp, 600000);
+    // ✅ ✅ NOWE – GPS / USER LOCATIONS
+    supabaseClient
+      .channel('user_locations_channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_locations' },
+        async () => {
+          await loadUserLocations();
+          renderMarkers();   // ✅ szybciej niż refreshApp
+        }
+      )
+      .subscribe();
 
+    window.realtimeSubscribed = true;
+  }
+
+  // ✅ BACKUP (rzadko – nie spamuj)
+  setInterval(refreshApp, 300000); // 5 min zamiast 10
 }
 
 const hash = window.location.hash;
@@ -4012,19 +4029,15 @@ document.addEventListener("click", (e)=>{
 
 function startGeoTracking(){
 
-if(!window.currentUser?.location_consent){
-  return;
-}
+  if(!window.currentUser?.location_consent) return;
+  if(!navigator.geolocation) return;
 
-  if(geoStarted) return;
+  if(geoStarted) return;   // ✅ zostaje
   geoStarted = true;
 
-  setInterval(() => {
+  navigator.geolocation.watchPosition(
 
-    if (!window.currentUser) return;
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(async pos => {
+    async pos => {
 
       const { latitude, longitude } = pos.coords;
 
@@ -4036,15 +4049,24 @@ if(!window.currentUser?.location_consent){
           lng: longitude,
           updated_at: new Date().toISOString()
         });
-      
-await loadUserLocations();
-  renderMarkers();
 
-      console.log("📍 zapis GPS");
+      // ✅ odśwież dla siebie
+      await loadUserLocations();
+      renderMarkers();
 
-    });
+      console.log("📍 GPS:", latitude, longitude);
+    },
 
-  }, 30000);
+    err => {
+      console.error("GPS ERROR:", err);
+    },
+
+    {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 10000
+    }
+  );
 }
   async function acceptRodo(){
 
