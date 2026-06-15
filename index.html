@@ -2696,17 +2696,24 @@ filtered.forEach(e => {
     • <b>${e.hardware || "Inne"}</b> – ${e.name}<br>
     <small>${formatDatePL(e.date)}</small><br>
 
-    <button onclick="openServiceModal('${key}', ${JSON.stringify(e).replace(/"/g,'\\\"')})"
-      style="
-        margin-top:6px;
-        background:#2563eb;
-        color:white;
-        border:none;
-        padding:5px 8px;
-        border-radius:6px;
-      ">
-      🔧 Usuń awarię
-    </button>
+    <button onclick="openServiceModal('${key}', ${
+  JSON.stringify(e)
+    .replace(/\\/g, '\\\\')   // ✅ backslash
+    .replace(/"/g,'\\\"')     // ✅ cudzysłowy
+    .replace(/'/g,"\\'")      // ✅ apostrofy
+    .replace(/\n/g,' ')       // ✅ nowe linie
+    .replace(/\r/g,' ')       // ✅ carriage return
+})"
+  style="
+    margin-top:6px;
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:5px 8px;
+    border-radius:6px;
+  ">
+  🔧 Usuń awarię
+</button>
 
     <br><br>
   `;
@@ -4133,6 +4140,17 @@ function startGeoTracking(){
 
   location.reload();
 }
+  document.addEventListener("click", (ev) => {
+
+  const btn = ev.target.closest(".fixBtn");
+  if(!btn) return;
+
+  const key = btn.dataset.key;
+  const event = JSON.parse(decodeURIComponent(btn.dataset.event));
+
+  openServiceModal(key, event);
+});
+
 </script>
 
 </body>
