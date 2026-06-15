@@ -3002,12 +3002,12 @@ if(editingParkomatKey){
     .eq("id", origId)
     .eq("structure", origStructure));
 }
+
 else{
-    // ✅ DODAWANIE
-    ({ error } = await supabaseClient
-      .from("parkomaty")
-      .insert([obj]));
-  }
+  const { error } = await supabaseClient
+    .from("parkomaty")
+    .insert([obj]);
+}
 
   if(error){
     console.error(error);
