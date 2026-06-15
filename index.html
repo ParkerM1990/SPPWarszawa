@@ -1485,7 +1485,43 @@ document.getElementById("rodoCheck").checked = false;
 
   showSection('mapSection');
 }
-  
+  async function checkUserSessionValidity(userId){
+
+  try{
+
+    const { data } = await supabaseClient.auth.getSession();
+
+    // ✅ brak sesji → user offline logicznie
+    if(!data.session){
+      return {
+        valid: false,
+        reason: "Brak sesji"
+      };
+    }
+
+    // ✅ sprawdź czy token nie wygasł
+    const expiresAt = data.session.expires_at * 1000;
+    const now = Date.now();
+
+    if(now > expiresAt){
+      return {
+        valid: false,
+        reason: "Token wygasł"
+      };
+    }
+
+    return {
+      valid: true,
+      reason: "OK"
+    };
+
+  }catch(e){
+    return {
+      valid: false,
+      reason: "Błąd sesji"
+    };
+  }
+}
 
 async function logout(){
 
@@ -3524,20 +3560,40 @@ async function refreshApp(){
   const icon = document.getElementById("refreshIcon");
   if(icon) icon.innerText = "⏳";
 
+  // ✅ 🔐 TU WSTAWIASZ
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+
+  if(!sessionData.session){
+    alert("🔒 Sesja wygasła");
+    isRefreshing = false;
+    logout();
+    return;
+  }
+
+  const expiresAt = sessionData.session.expires_at * 1000;
+  if(Date.now() > expiresAt){
+    alert("🔒 Token wygasł");
+    isRefreshing = false;
+    logout();
+    return;
+  }
+
+  // ✅ RESZTA BEZ ZMIAN
   await Promise.all([
     loadParkomaty(),
     loadActive(),
     loadHistory(),
     loadInterwencje(),
-    loadUsers(), // ✅ NOWE
+    loadUsers(),
     loadUserLocations()
   ]);
-  renderAdminPanel(); // ✅ struktury + checkbox
+
+  renderAdminPanel();
   renderAll();
 
   populateActiveEventFilter();
   populateEventFilter();
-  populateUserFilter(); // ✅ ważne
+  populateUserFilter();
 
   // ✅ sprawdzenie czy admin wylogował usera
   if(window.currentUser){
@@ -3559,7 +3615,6 @@ async function refreshApp(){
   }
 
   if(icon) icon.innerText = "🔄";
-
   isRefreshing = false;
 }
 
@@ -3600,7 +3655,25 @@ function renderUsers(users){
 
 const diff = Date.now() - lastSeenMs;
 
-const isOnline = u.is_online;
+
+let sessionInfo = "⏳ sprawdzanie...";
+
+(async () => {
+
+  const result = await checkUserSessionValidity(u.id);
+
+  const el = document.getElementById("session_" + u.id);
+
+  if(!el) return;
+
+  if(result.valid){
+    el.innerHTML = `<span style="color:#16a34a">✅ sesja OK</span>`;
+  }else{
+    el.innerHTML = `<span style="color:#dc2626">❌ ${result.reason}</span>`;
+  }
+
+})();
+
 
   return `
     <small>
@@ -3618,6 +3691,9 @@ const isOnline = u.is_online;
             ? formatDatePL(u.last_seen)
             : "-"
         }
+        
+<br>
+<span id="session_${u.id}">⏳ sprawdzanie...</span>
       </span>
     </small>
     <br><br>
