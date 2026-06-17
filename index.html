@@ -1409,47 +1409,55 @@ input[type="date"] {
 </div>
 </div>
   
-<div id="editUserModal" style="
-position:fixed;
-inset:0;
-background:rgba(0,0,0,0.7);
-display:none;
-justify-content:center;
-align-items:center;
-z-index:6000;
-">
-
 <div style="
 background:#020617;
 padding:16px;
 border-radius:12px;
 width:90%;
 max-width:400px;
+max-height:85vh;
 display:flex;
 flex-direction:column;
 gap:10px;
+overflow:hidden;
 ">
 
 <h3>✏️ Edytuj użytkownika</h3>
 
-<input id="editFirstName" placeholder="Imię">
-<input id="editLastName" placeholder="Nazwisko">
+<div style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px;">
 
-<select id="editRole">
-  <option value="serwis">Serwis</option>
-  <option value="admin">Admin</option>
-</select>
+  <input id="editFirstName" placeholder="Imię">
+  <input id="editLastName" placeholder="Nazwisko">
 
-<h4>Struktury</h4>
-<div id="editStructures"></div>
+  <select id="editRole">
+    <option value="serwis">Serwis</option>
+    <option value="admin">Admin</option>
+  </select>
 
-<h4>Strefy</h4>
-<div id="editNodes" style="max-height:150px; overflow:auto;"></div>
+  <h4>Struktury</h4>
+  <div id="editStructures"></div>
 
-<button onclick="saveUserEdit()">✅ Zapisz</button>
-<button onclick="closeEditModal()">❌ Anuluj</button>
+  <h4>Strefy</h4>
+  <div id="editNodes" style="max-height:150px; overflow:auto;"></div>
 
 </div>
+
+<div style="
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:10px;
+  position:sticky;
+  bottom:0;
+  background:#020617;
+  padding-top:10px;
+">
+
+  <button onclick="saveUserEdit()">✅ Zapisz</button>
+  <button onclick="closeEditModal()" style="background:#374151;">❌ Anuluj</button>
+
+</div>
+
 </div>
   <!-- ✅ MODAL PARKOMAT -->
 <div id="parkomatModal" style="
