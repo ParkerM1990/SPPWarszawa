@@ -3411,14 +3411,31 @@ async function init(){
     // ✅ ✅ NOWE – GPS / USER LOCATIONS
     supabaseClient
       .channel('user_locations_channel')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'user_locations' },
-        async () => {
-          await loadUserLocations();
-          renderMarkers();   // ✅ szybciej niż refreshApp
-        }
-      )
+.on(
+  'postgres_changes',
+  {
+    event: '*',
+    schema: 'public',
+    table: 'user_locations'
+  },
+  payload => {
+
+    const row = payload.new;
+    if(!row) return;
+
+    const idx = userLocations.findIndex(
+      x => x.user_id === row.user_id
+    );
+
+    if(idx >= 0){
+      userLocations[idx].lat = row.lat;
+      userLocations[idx].lng = row.lng;
+      userLocations[idx].updated_at = row.updated_at;
+    }
+
+    renderMarkers();
+  }
+)
       .subscribe();
 
     window.realtimeSubscribed = true;
@@ -4076,10 +4093,6 @@ function startGeoTracking(){
           lng: longitude,
           updated_at: new Date().toISOString()
         });
-
-      // ✅ odśwież dla siebie
-      await loadUserLocations();
-      renderMarkers();
 
       console.log("📍 GPS:", latitude, longitude);
     },
