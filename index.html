@@ -2011,7 +2011,9 @@ const baseMaps = {
   "Jasna mapa" : light
 };
 
-L.control.layers(baseMaps).addTo(map);
+L.control.layers(baseMaps, null, {
+  position: 'bottomleft'
+}).addTo(map);
 
 // 🔥 specjalna warstwa nad mapą
 map.createPane('labels');
