@@ -2015,12 +2015,6 @@ L.control.layers(baseMaps, null, {
   position: 'bottomleft'
 }).addTo(map);
 
-// 🔥 specjalna warstwa nad mapą
-map.createPane('labels');
-map.getPane('labels').style.zIndex = 650;
-map.getPane('labels').style.pointerEvents = 'none';
-
-labels.addTo(map);
 
 // Twoje markery
 let markerLayer = L.layerGroup().addTo(map);  // ✅ parkomaty
