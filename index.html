@@ -138,6 +138,7 @@ header{
 
 
 
+
 #alarmCounter{
   background:#dc2626;
   padding:4px 10px;
@@ -151,6 +152,7 @@ header{
   font-size:14px;
   white-space:nowrap; /* 🔥 nie łamie tekstu */
 }
+
 
 #adminPanel input,
 #adminPanel select {
@@ -1976,23 +1978,40 @@ let map = L.map('map', {
   zoomControl: true
 }).setView([52.23218, 21.00788], 12);
 
-// ✅ baza – dark jak Stadia
-var darkBase = L.tileLayer(
-  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+// baza – light
+const satelita = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   {
-    maxZoom: 20,
-    attribution: '&copy; OpenStreetMap & Carto'
-  }
-).addTo(map);
-
-// ✅ LABELS (nakładka – daje efekt jak Stadia)
-var labels = L.tileLayer(
-  'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
-  {
-    pane: 'labels',
-    attribution: '&copy; OpenStreetMap & Carto'
+    attribution: '&copy; Esri & contributors'
   }
 );
+// baza – light
+const light = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+  {
+    maxZoom: 18,
+    attribution: '&copy; Esri'
+  }
+);
+// baza – dark
+const dark = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  {
+    attribution: '&copy; OpenStreetMap &copy; CARTO'
+  }
+);
+
+// domyślna warstwa
+dark.addTo(map);
+
+// przełącznik warstw
+const baseMaps = {
+  "Satelita": satelita,
+  "Ciemna mapa": dark,
+  "Jasna mapa" : light
+};
+
+L.control.layers(baseMaps).addTo(map);
 
 // 🔥 specjalna warstwa nad mapą
 map.createPane('labels');
