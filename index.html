@@ -2997,16 +2997,21 @@ if(Math.abs(obj.lat) > 90 || Math.abs(obj.lng) > 180){
   let error;
 
   
-if(editingParkomatKey){
 
-  const [origId, origStructure] = editingParkomatKey.split("|");
+if (editingParkomatKey) {
 
-  ({ error } = await supabaseClient
+  const [origId] = editingParkomatKey.split("|");
+
+  const { data, error } = await supabaseClient
     .from("parkomaty")
     .update(obj)
     .eq("id", origId)
-    .eq("structure", origStructure));
+    .select();
+
+  console.log("UPDATE RESULT:", data);
+
 }
+
 
 else{
   const { error } = await supabaseClient
