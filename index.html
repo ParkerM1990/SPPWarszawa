@@ -579,47 +579,244 @@ input[type="date"] {
 .options label:hover{
   background:#111827;
 }
+.login-screen{
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:
+    linear-gradient(
+      135deg,
+      #0f172a,
+      #1e293b,
+      #2563eb
+    );
+  overflow:hidden;
+  z-index:99999;
+}
+
+.login-card{
+  width:420px;
+  max-width:90%;
+  padding:40px;
+  border-radius:28px;
+
+  background:rgba(255,255,255,0.08);
+
+  backdrop-filter:blur(18px);
+
+  border:1px solid rgba(255,255,255,0.15);
+
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.35);
+
+  text-align:center;
+}
+
+.logo-circle{
+  width:90px;
+  height:90px;
+  margin:auto;
+
+  border-radius:50%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:40px;
+  font-weight:700;
+
+  color:white;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #60a5fa
+    );
+}
+
+.login-logo h1{
+  margin-top:20px;
+  color:white;
+  font-size:30px;
+}
+
+.login-logo p{
+  color:#cbd5e1;
+  margin-top:5px;
+}
+
+.login-form{
+  margin-top:30px;
+}
+
+.login-form input{
+  width:100%;
+  padding:15px;
+  margin-bottom:15px;
+
+  border:none;
+  outline:none;
+
+  border-radius:14px;
+
+  background:
+    rgba(255,255,255,0.1);
+
+  color:white;
+
+  font-size:16px;
+}
+
+.login-form input::placeholder{
+  color:#cbd5e1;
+}
+
+.login-form button{
+  width:100%;
+  padding:15px;
+
+  border:none;
+  border-radius:14px;
+
+  cursor:pointer;
+
+  font-size:17px;
+  font-weight:600;
+
+  color:white;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #60a5fa
+    );
+
+  transition:0.3s;
+}
+
+.login-form button:hover{
+  transform:translateY(-2px);
+
+  box-shadow:
+    0 10px 30px rgba(37,99,235,0.5);
+}
+
+.login-footer{
+  margin-top:25px;
+  padding-top:18px;
+  border-top:1px solid rgba(255,255,255,.15);
+  text-align:center;
+  color:#94a3b8;
+  line-height:1.6;
+}
+
+.login-footer strong{
+  color:#fff;
+  font-size:15px;
+}
+
+.author{
+  margin-top:12px;
+}
+
+.author strong{
+  color:white;
+  font-size:15px;
+}
+.logo-icon{
+   width:80px;
+   height:80px;
+   margin:auto;
+   border-radius:20px;
+   background:#2563eb;
+   display:flex;
+   align-items:center;
+   justify-content:center;
+   font-size:42px;
+   box-shadow:0 10px 30px rgba(37,99,235,.4);
+}
+
+.login-corner-logo {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 250px;      /* możesz zmienić */
+  max-width: 40vw;   /* mobile */
+  height: auto;
+  z-index: 10001;
+  opacity: 0.95;
+}
+
+@media (max-width: 768px) {
+  .login-corner-logo {
+    width: 120px;
+    top: 10px;
+    left: 10px;
+  }
+}
+
 
 </style>
 </head>
 
 <body>
-<div id="authBox" style="
-position:fixed;
-inset:0;
-background:#020617;
-display:flex;
-justify-content:center;
-align-items:center;
-z-index:9999;
-">
+  
 
-<div style="
-background:#0b1220;
-padding:20px;
-border-radius:12px;
-width:300px;
-display:flex;
-flex-direction:column;
-gap:10px;
-">
+<div id="authBox" class="login-screen">
 
-<h3>🔐 Logowanie</h3>
+<!-- 🔝 LOGO W LEWYM GÓRNYM ROGU -->
+  <img src="cpg-logo-new.png" class="login-corner-logo" alt="CPG Logo">
 
-<input id="email" placeholder="Email" style="padding:8px;border-radius:8px;">
-<input id="password" type="password" placeholder="Hasło" style="padding:8px;border-radius:8px;">
+  <div class="login-card">
 
-<button onclick="login()" style="
-background:#1d4ed8;
-color:white;
-padding:10px;
-border:none;
-border-radius:8px;
-">
-Zaloguj
-</button>
+    <!-- LOGO -->
+    <div class="login-logo">
+      <div class="logo-icon">🅿️</div>
+      <h1>SPP Warszawa</h1>
+      <p>Monitoring Parkomatów</p>
+    </div>
 
-</div>
+    <!-- FORM -->
+    <div class="login-form">
+      <h3>🔐 Logowanie</h3>
+
+      <input 
+        id="email" 
+        type="email" 
+        placeholder="Email" 
+        autofocus
+      >
+
+      <input 
+        id="password" 
+        type="password" 
+        placeholder="Hasło"
+      >
+
+      <button onclick="login()">
+        Zaloguj się
+      </button>
+    </div>
+
+    <!-- STOPKA -->
+    <div class="login-footer">
+      <div class="version">
+        Wersja 2.0
+      </div>
+
+      <div class="author">
+        Projekt i wykonanie<br>
+        <strong>Piotr Mądrzak</strong>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <header>
