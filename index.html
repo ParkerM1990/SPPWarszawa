@@ -28,7 +28,7 @@ body{
   color:#e5e7eb;
 }
 :root{
-  --header-h: 60px;
+  --header-h: 50px;
   --sidebar-w: 72px;
   --bottom-bar: 50px;
 }
@@ -483,15 +483,10 @@ input[type="date"] {
   z-index: 4000 !important;
 }
 
-@media(max-width:768px){
-
-  .leaflet-top {
-    top: 150px !important;
-  }
-
-  .leaflet-bottom {
-    bottom: 2px !important;
-  }
+@media (max-width: 768px){
+  .leaflet-top {top: 150px !important;}
+  .leaflet-bottom {bottom: 2px !important;}
+  .leaflet-control-zoom {display: none;}
 }
 
 
