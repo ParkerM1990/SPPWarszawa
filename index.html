@@ -4363,14 +4363,17 @@ function startGeoTracking(){
 
       const { latitude, longitude } = pos.coords;
 
-      await supabaseClient
-        .from("user_locations")
-        .upsert({
-          user_id: window.currentUser.id,
-          lat: latitude,
-          lng: longitude,
-          updated_at: new Date().toISOString()
-        });
+      
+await supabaseClient
+  .from("user_locations")
+  .upsert({
+    user_id: window.currentUser.id,
+    lat: latitude,
+    lng: longitude,
+    updated_at: new Date().toISOString(),
+    is_online: true   // 🔥 KLUCZOWE
+  });
+
 
       console.log("📍 GPS:", latitude, longitude);
     },
