@@ -3679,8 +3679,8 @@ supabaseClient
     },
     async () => {
 
-      await loadUserLocations();
-      renderMarkers();
+      await loadUserLocations();   // ✅ pobierz VIEW
+      renderMarkers();             // ✅ odśwież mapę
     }
   )
   .subscribe();
