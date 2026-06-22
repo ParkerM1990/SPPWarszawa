@@ -3667,6 +3667,7 @@ async function init(){
       .subscribe();
 
    // ✅ ✅ NOWE – GPS / USER LOCATIONS
+
 supabaseClient
   .channel('user_locations_channel')
   .on(
@@ -3676,44 +3677,14 @@ supabaseClient
       schema: 'public',
       table: 'user_locations'
     },
-    payload => {
+    async () => {
 
-      const row = payload.new;
-      if(!row) return;
-
-      const idx = userLocations.findIndex(
-        x => x.user_id === row.user_id
-      );
-
-      if(idx >= 0){
-
-        // ✅ aktualizacja istniejącego użytkownika (pełna, nie tylko lat/lng)
-        userLocations[idx] = {
-          ...userLocations[idx],
-          ...row
-        };
-
-      } else {
-
-        // ✅ NOWY użytkownik – tego brakowało u Ciebie
-        userLocations.push({
-          user_id: row.user_id,
-          lat: row.lat,
-          lng: row.lng,
-          updated_at: row.updated_at,
-
-          // ✅ fallback (bo user_locations tego nie ma)
-          first_name: "User",
-          last_name: "",
-          is_online: true,
-          location_consent: true
-        });
-      }
-
+      await loadUserLocations();
       renderMarkers();
     }
   )
   .subscribe();
+
 
 
     window.realtimeSubscribed = true;
