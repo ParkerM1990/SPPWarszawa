@@ -2290,7 +2290,7 @@ async function loadActive(){
   const { data, error } = await supabaseClient
     .from("active_events")
     .select("*")
-    .eq("level", "Błąd");
+    .neq("level", "RESET");
 
   if(error){
     console.error("BŁĄD active_events:", error);
