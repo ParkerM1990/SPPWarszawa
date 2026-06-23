@@ -2570,8 +2570,8 @@ async function submitService(){
     ? `${window.currentUser.first_name || ""} ${window.currentUser.last_name || ""}`.trim()
     : "unknown";
 
-  const checked = document.querySelectorAll("#actionsBox input:checked");
-  const actions = [...checked].map(el => el.value);
+  const actions = [...document.querySelectorAll("#actionsBox input:checked")]
+    .map(el => el.value);
 
   const parts = [...document.querySelectorAll("#partsBox input:checked")]
     .map(el => el.value);
@@ -2588,7 +2588,6 @@ async function submitService(){
 
   let {key, event} = currentService;
 
-  // ✅ interwencja ręczna
   if(!key){
     key = document.getElementById("deviceSelect").value;
   }
@@ -2601,10 +2600,9 @@ async function submitService(){
   }
 
   const now = new Date().toISOString();
+  const d = parseUTC(event.date);
 
   try{
-
-    const d = parseUTC(event.date);
 
     // ✅ ZAPIS INTERWENCJI (KLUCZOWE)
     const { error } = await supabaseClient
@@ -2614,31 +2612,30 @@ async function submitService(){
         structure: p.structure,
         location: p.location,
         event_name: event.name,
-        start_date: d ? d.toISOString() : new Date().toISOString(),
+        start_date: d ? d.toISOString() : now,
         end_date: now,
         user_id: window.currentUser.id,
         user_email: user,
         actions: actions,
         parts: parts,
-        hardware: event.hardware, // ✅ WAŻNE
+        hardware: event.hardware,
         handled_spike: currentService?.event?.code === "INFO_SPAM"
       }]);
 
     if(error){
       console.error(error);
-      alert("❌ Błąd zapisu do Supabase");
+      alert("❌ Błąd zapisu");
       return;
     }
 
     const isInfoSpike = currentService?.event?.code === "INFO_SPAM";
 
-    // ======================================
+    // ===================================================
     // ✅ NORMALNA AWARIA (ERROR)
-    // ======================================
+    // ===================================================
     if(currentService.key && !isInfoSpike){
 
-      // usuń z active
-      const { error: deleteError } = await supabaseClient
+      await supabaseClient
         .from("active_events")
         .delete()
         .match({
@@ -2647,13 +2644,6 @@ async function submitService(){
           event_code: event.code
         });
 
-      if(deleteError){
-        console.error(deleteError);
-        alert("❌ Błąd usuwania awarii");
-        return;
-      }
-
-      // zapis historii
       await supabaseClient
         .from("history_events")
         .insert([{
@@ -2662,17 +2652,59 @@ async function submitService(){
           event_name: event.name,
           event_code: event.code,
           hardware: event.hardware,
-          start_date: d ? d.toISOString() : new Date().toISOString(),
+          start_date: d ? d.toISOString() : now,
           end_date: now
         }]);
     }
 
-    // ======================================
-    // ✅ INFO_SPAM
-    // ======================================
-    // 👉 NIC nie robimy w JS
-    // 👉 tylko zapis handled_spike w interwencje2
-    // 👉 SQL (get_info_spikes) sam to ukryje
+    // ===================================================
+    // ✅ INFO_SPAM (KLUCZOWE — TWOJE PYTANIE)
+    // ===================================================
+    if(currentService.key && isInfoSpike){
+
+      // ✅ pobierz wszystkie INFO dla hardware
+      const { data: infoRows } = await supabaseClient
+        .from("active_events")
+        .select("date")
+        .match({
+          id: p.id,
+          structure: p.structure,
+          hardware: event.hardware,
+          level: "Informacja"
+        });
+
+      let startDate = d;
+
+      if(infoRows && infoRows.length > 0){
+        startDate = infoRows
+          .map(e => new Date(e.date))
+          .sort((a,b)=>a-b)[0];
+      }
+
+      // ✅ zapis JEDNEGO wpisu do historii
+      await supabaseClient
+        .from("history_events")
+        .insert([{
+          id: p.id,
+          structure: p.structure,
+          event_name: `INFO (${event.hardware}) – obsłużone`,
+          event_code: "INFO_SPAM",
+          hardware: event.hardware,
+          start_date: startDate ? startDate.toISOString() : now,
+          end_date: now
+        }]);
+
+      // ✅ USUNIĘCIE wszystkich INFO dla hardware
+      await supabaseClient
+        .from("active_events")
+        .delete()
+        .match({
+          id: p.id,
+          structure: p.structure,
+          hardware: event.hardware,
+          level: "Informacja"
+        });
+    }
 
     // ✅ komunikat
     if(currentService.key){
@@ -2681,7 +2713,7 @@ async function submitService(){
       alert("✅ Interwencja zapisana");
     }
 
-    // ✅ lokalne czyszczenie UI
+    // ✅ UI cleanup
     if(currentService.key){
       activeEvents[key] = activeEvents[key].filter(e => e !== event);
 
@@ -2704,7 +2736,7 @@ async function submitService(){
 
   }catch(e){
     console.error(e);
-    alert("❌ Błąd zapisu");
+    alert("❌ Błąd operacji");
   }
 }
 
