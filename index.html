@@ -2637,46 +2637,99 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
     }
 if(currentService.key){
 
+  const isInfoSpike = currentService?.event?.code === "INFO_SPAM";
+
   try{
 
-    // ✅ 1. usuń z active_events
-    const { error: deleteError } = await supabaseClient
-      .from("active_events")
-      .delete()
-      .match({
-        id: p.id,
-        structure: p.structure,
-        event_code: event.code,
-        date: event.date
-      });
+    // ======================================
+    // ✅ NORMALNA AWARIA
+    // ======================================
+    if(!isInfoSpike){
 
-    if(deleteError){
-      console.error(deleteError);
-      alert("❌ Błąd usuwania awarii");
-      return;
+      const { error: deleteError } = await supabaseClient
+        .from("active_events")
+        .delete()
+        .match({
+          id: p.id,
+          structure: p.structure,
+          event_code: event.code
+        });
+
+      if(deleteError){
+        console.error(deleteError);
+        alert("❌ Błąd usuwania awarii");
+        return;
+      }
+
+      const d = parseUTC(event.date);
+
+      await supabaseClient
+        .from("history_events")
+        .insert([{
+          id: p.id,
+          structure: p.structure,
+          event_name: event.name,
+          event_code: event.code,
+          hardware: event.hardware,
+          start_date: d ? d.toISOString() : new Date().toISOString(),
+          end_date: now
+        }]);
     }
 
-    // ✅ 2. dodaj do historii
-    const d = parseUTC(event.date);
-    const { error: historyError } = await supabaseClient
-      .from("history_events")
-      .insert([{
-        id: p.id,
-        structure: p.structure,
-        event_name: event.name,
-        event_code: event.code,
-        hardware: event.hardware,
-        start_date: d ? d.toISOString() : new Date().toISOString(),
-        end_date: now
-      }]);
+    // ======================================
+    // ✅ 🔥 INFO SPAM – NOWA LOGIKA
+    // ======================================
+    if(isInfoSpike){
 
-    if(historyError){
-      console.error(historyError);
-      alert("❌ Błąd zapisu historii");
+      // 🔴 TU wstaw swoją tabelę źródłową (np. mail_events)
+      const { data: infoEvents, error } = await supabaseClient
+        .from("mail_events")
+        .select("*")
+        .match({
+          id: p.id,
+          structure: p.structure,
+          hardware: event.hardware
+        });
+
+      if(error){
+        console.error(error);
+        alert("❌ Błąd pobierania INFO");
+        return;
+      }
+
+      if(infoEvents && infoEvents.length > 0){
+
+        const firstDate = infoEvents
+          .map(e => new Date(e.date))
+          .sort((a, b) => a - b)[0];
+
+        // ✅ zapis jednej pozycji do historii
+        await supabaseClient
+          .from("history_events")
+          .insert([{
+            id: p.id,
+            structure: p.structure,
+            event_name: `INFO (${event.hardware}) – obsłużone`,
+            event_code: "INFO_SPAM",
+            hardware: event.hardware,
+            start_date: firstDate ? firstDate.toISOString() : now,
+            end_date: now
+          }]);
+
+        // ✅ 🔥 KLUCZOWE – usuń źródłowe INFO
+        await supabaseClient
+          .from("mail_events")
+          .delete()
+          .match({
+            id: p.id,
+            structure: p.structure,
+            hardware: event.hardware
+          });
+      }
     }
 
   }catch(err){
-    console.error("Błąd zamykania awarii:", err);
+    console.error("Błąd zamykania:", err);
     alert("❌ Krytyczny błąd");
   }
 }
