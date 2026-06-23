@@ -2679,23 +2679,7 @@ if(currentService.key){
     // ======================================
     // ✅ 🔥 INFO SPAM – NOWA LOGIKA
     // ======================================
-    if(isInfoSpike){
-
-      // 🔴 TU wstaw swoją tabelę źródłową (np. mail_events)
-      const { data: infoEvents, error } = await supabaseClient
-        .from("mail_events")
-        .select("*")
-        .match({
-          id: p.id,
-          structure: p.structure,
-          hardware: event.hardware
-        });
-
-      if(error){
-        console.error(error);
-        alert("❌ Błąd pobierania INFO");
-        return;
-      }
+    
 
       if(infoEvents && infoEvents.length > 0){
 
