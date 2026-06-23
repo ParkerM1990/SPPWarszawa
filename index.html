@@ -3677,9 +3677,27 @@ supabaseClient
       schema: 'public',
       table: 'user_locations'
     },
-    async () => {
-      await loadUserLocations();   // ✅ pobierz VIEW
-      renderMarkers();             // ✅ odśwież mapę
+    (payload) => {
+
+      const newData = payload.new;
+      if(!newData) return;
+
+      const index = userLocations.findIndex(
+        u => u.user_id === newData.user_id
+      );
+
+      if(index !== -1){
+        // ✅ update istniejącego
+        userLocations[index] = {
+          ...userLocations[index],
+          ...newData
+        };
+      }else{
+        // ✅ nowy user
+        userLocations.push(newData);
+      }
+
+      renderMarkers(); // 🔥 NATYCHMIAST
     }
   )
   .subscribe();
