@@ -2566,17 +2566,15 @@ function closeModal(){
 
 async function submitService(){
 
-  
-const user = window.currentUser
-  ? `${window.currentUser.first_name || ""} ${window.currentUser.last_name || ""}`.trim()
-  : "unknown";
-
+  const user = window.currentUser
+    ? `${window.currentUser.first_name || ""} ${window.currentUser.last_name || ""}`.trim()
+    : "unknown";
 
   const checked = document.querySelectorAll("#actionsBox input:checked");
   const actions = [...checked].map(el => el.value);
-  
-const parts = [...document.querySelectorAll("#partsBox input:checked")]
-  .map(el => el.value);
+
+  const parts = [...document.querySelectorAll("#partsBox input:checked")]
+    .map(el => el.value);
 
   if(!user){
     alert("❌ Wybierz pracownika");
@@ -2590,7 +2588,7 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
 
   let {key, event} = currentService;
 
-  // ✅ jeśli interwencja ręczna → pobierz parkomat
+  // ✅ interwencja ręczna
   if(!key){
     key = document.getElementById("deviceSelect").value;
   }
@@ -2605,7 +2603,10 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
   const now = new Date().toISOString();
 
   try{
+
     const d = parseUTC(event.date);
+
+    // ✅ ZAPIS INTERWENCJI (KLUCZOWE)
     const { error } = await supabaseClient
       .from("interwencje2")
       .insert([{
@@ -2615,12 +2616,12 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
         event_name: event.name,
         start_date: d ? d.toISOString() : new Date().toISOString(),
         end_date: now,
-        user_id: window.currentUser.id, // ✅ KLUCZOWE
+        user_id: window.currentUser.id,
         user_email: user,
         actions: actions,
         parts: parts,
+        hardware: event.hardware, // ✅ WAŻNE
         handled_spike: currentService?.event?.code === "INFO_SPAM"
-
       }]);
 
     if(error){
@@ -2629,23 +2630,14 @@ const parts = [...document.querySelectorAll("#partsBox input:checked")]
       return;
     }
 
-    // ✅ komunikat
-    if(currentService.key){
-      alert("✅ Awaria zamknięta");
-    }else{
-      alert("✅ Interwencja zapisana");
-    }
-if(currentService.key){
-
-  const isInfoSpike = currentService?.event?.code === "INFO_SPAM";
-
-  try{
+    const isInfoSpike = currentService?.event?.code === "INFO_SPAM";
 
     // ======================================
-    // ✅ NORMALNA AWARIA
+    // ✅ NORMALNA AWARIA (ERROR)
     // ======================================
-    if(!isInfoSpike){
+    if(currentService.key && !isInfoSpike){
 
+      // usuń z active
       const { error: deleteError } = await supabaseClient
         .from("active_events")
         .delete()
@@ -2661,8 +2653,7 @@ if(currentService.key){
         return;
       }
 
-      const d = parseUTC(event.date);
-
+      // zapis historii
       await supabaseClient
         .from("history_events")
         .insert([{
@@ -2677,48 +2668,20 @@ if(currentService.key){
     }
 
     // ======================================
-    // ✅ 🔥 INFO SPAM – NOWA LOGIKA
+    // ✅ INFO_SPAM
     // ======================================
-    
+    // 👉 NIC nie robimy w JS
+    // 👉 tylko zapis handled_spike w interwencje2
+    // 👉 SQL (get_info_spikes) sam to ukryje
 
-      if(infoEvents && infoEvents.length > 0){
-
-        const firstDate = infoEvents
-          .map(e => new Date(e.date))
-          .sort((a, b) => a - b)[0];
-
-        // ✅ zapis jednej pozycji do historii
-        await supabaseClient
-          .from("history_events")
-          .insert([{
-            id: p.id,
-            structure: p.structure,
-            event_name: `INFO (${event.hardware}) – obsłużone`,
-            event_code: "INFO_SPAM",
-            hardware: event.hardware,
-            start_date: firstDate ? firstDate.toISOString() : now,
-            end_date: now
-          }]);
-
-        // ✅ 🔥 KLUCZOWE – usuń źródłowe INFO
-        await supabaseClient
-          .from("mail_events")
-          .delete()
-          .match({
-            id: p.id,
-            structure: p.structure,
-            hardware: event.hardware
-          });
-      }
+    // ✅ komunikat
+    if(currentService.key){
+      alert("✅ Awaria zamknięta");
+    }else{
+      alert("✅ Interwencja zapisana");
     }
 
-  }catch(err){
-    console.error("Błąd zamykania:", err);
-    alert("❌ Krytyczny błąd");
-  }
-}
-    
-    // ✅ usuwamy tylko jeśli to awaria
+    // ✅ lokalne czyszczenie UI
     if(currentService.key){
       activeEvents[key] = activeEvents[key].filter(e => e !== event);
 
@@ -2728,8 +2691,6 @@ if(currentService.key){
     }
 
     closeModal();
-
-    // ✅ refresh
     renderAll();
 
     if(currentService.key){
@@ -2742,8 +2703,8 @@ if(currentService.key){
     renderInterwencje();
 
   }catch(e){
-    alert("❌ Błąd zapisu");
     console.error(e);
+    alert("❌ Błąd zapisu");
   }
 }
 
