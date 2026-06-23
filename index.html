@@ -2290,7 +2290,10 @@ async function loadActive(){
   const { data, error } = await supabaseClient
     .from("active_events")
     .select("*")
-    .neq("level", "RESET");
+    
+.neq("level", "RESET")
+.not("level", "is", null);
+
 
   if(error){
     console.error("BŁĄD active_events:", error);
@@ -2300,7 +2303,7 @@ async function loadActive(){
   // ✅ 2. DYNAMICZNY PRÓG (z dropdown)
   
 const threshold = Number(
-  document.getElementById("thresholdSelect")?.value || 5
+  document.getElementById("thresholdSelect")?.value || 7
 );
 
 const hours = Number(
@@ -2669,8 +2672,7 @@ async function submitService(){
         .match({
           id: p.id,
           structure: p.structure,
-          hardware: event.hardware,
-          level: "Informacja"
+          hardware: event.hardware
         });
 
       let startDate = d;
@@ -2701,8 +2703,7 @@ async function submitService(){
         .match({
           id: p.id,
           structure: p.structure,
-          hardware: event.hardware,
-          level: "Informacja"
+          hardware: event.hardware
         });
     }
 
@@ -2713,7 +2714,7 @@ async function submitService(){
       alert("✅ Interwencja zapisana");
     }
 
-    // ✅ UI cleanup
+     // ✅ UI cleanup
     if(currentService.key){
       activeEvents[key] = activeEvents[key].filter(e => e !== event);
 
