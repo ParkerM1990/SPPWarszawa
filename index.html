@@ -2984,8 +2984,14 @@ if(from){
 
     
 filtered.forEach(e => {
-  html += `
-    • <b>${e.hardware || "Inne"}</b> – ${e.name}<br>
+  
+const isInfo = e.level === "Informacja";  
+html += `
+    • <b>${e.hardware || "Inne"}</b> – ${
+      isInfo
+        ? `${e.name} (${e.count})`
+        : e.name
+    }<br>
     <small>${formatDatePL(e.date)}</small><br>
 
     
