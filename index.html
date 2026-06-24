@@ -1106,8 +1106,10 @@ input[type="date"] {
   <div class="filter-item">
     <span>📅</span>
     <div style="display:flex; gap:6px; flex-wrap:wrap; width:100%;">
-      <input type="date" id="statsFrom" onchange="renderInterStats()">
-      <input type="date" id="statsTo" onchange="renderInterStats()">
+      
+<input type="date" id="statsFrom" onchange="renderInterStats(); renderInterwencje()">
+<input type="date" id="statsTo" onchange="renderInterStats(); renderInterwencje()">
+
       
       <select onchange="setDateRange(this.value)" style="margin-left:6px;">
         <option value="">📅 Własny zakres</option>
@@ -3354,12 +3356,27 @@ else{
 function renderInterwencje(){
 
   const terminal = (document.getElementById("interTerminalFilter").value || "").toLowerCase();
+  const from = document.getElementById("statsFrom").value;
+  const to = document.getElementById("statsTo").value
   const userInput = document.getElementById("interUserFilter")?.value;
   const typeFilter = document.getElementById("interTypeFilter")?.value;
 
   let html = "";
 
   interwencje.forEach(i => {
+
+  const d = parseUTC(i.start_date);
+  if(!d) return;
+
+  if(from){
+    const f = new Date(from + "T00:00:00Z");
+    if(d < f) return;
+  }
+
+  if(to){
+    const t = new Date(to + "T23:59:59Z");
+    if(d > t) return;
+  }
 
     const isAdmin = window.currentUser?.role === "admin";
 
@@ -3660,6 +3677,7 @@ function setDateRange(type){
   }
 
   renderInterStats();
+  renderInterwencje();
 }
 
   
