@@ -2344,15 +2344,16 @@ data.forEach(e => {
 
   if (!activeEvents[key]) activeEvents[key] = [];
 
-  activeEvents[key].push({
-    name: isInfo
-      ? `ℹ️ ${e.hardware} – ${e.info_count}`
-      : e.event_name,
-    code: e.event_code,
-    hardware: e.hardware,
-    date: e.date,
-    count: isInfo ? e.info_count : 1
-  });
+  
+activeEvents[key].push({
+  name: e.event_name,
+  code: e.event_code,
+  hardware: e.hardware,
+  date: e.date,
+  count: isInfo ? e.info_count : 1,
+  level: e.event_level_name
+});
+
 
   count++;
 
