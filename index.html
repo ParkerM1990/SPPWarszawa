@@ -2357,25 +2357,6 @@ data.forEach(e => {
   count++;
 
 });
-
-  // ✅ 6. DODAJ "INFO > threshold"
-  infoSpikes?.forEach(e => {
-
-    const key = makeKey(e.id, e.structure);
-
-    if(!allParkomaty[key]) return;
-
-    if(!activeEvents[key]) activeEvents[key] = [];
-
-    activeEvents[key].push({
-      name: `⚠️ ${e.hardware} – ${e.cnt} zdarzeń / ${hours}h`,
-      code: "INFO_SPAM",
-      hardware: e.hardware || "Inne",
-      date: e.last_date
-    });
-
-    count++;
-  });
   
 }
 
