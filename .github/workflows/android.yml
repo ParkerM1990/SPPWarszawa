@@ -1,9 +1,11 @@
 name: Build APK
 
-
 on:
   workflow_dispatch:
 
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -18,18 +20,26 @@ jobs:
         with:
           node-version: 18
 
+      # ✅ FIX: Java pod Android build
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Install dependencies
         run: npm install
 
       - name: Install Capacitor
         run: npm install @capacitor/core @capacitor/cli @capacitor/android
 
+      # ✅ FIX: webDir zmienione + poprawiony zapis >
       - name: Create capacitor config
         run: |
           echo '{
             "appId": "com.sppwarszawa.app",
             "appName": "SPP Warszawa",
-            "webDir": "www",
+            "webDir": ".",
             "server": {
               "url": "https://parkerm1990.github.io/SPPWarszawa/",
               "cleartext": true
@@ -42,11 +52,19 @@ jobs:
       - name: Add Android
         run: npx cap add android
 
+      # ✅ FIX: brakujący krok
+      - name: Copy project
+        run: npx cap copy
+
+      # ✅ FIX: usuwa błędy Gradle cache
+      - name: Clean Gradle
+        run: rm -rf ~/.gradle/caches/
+
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
