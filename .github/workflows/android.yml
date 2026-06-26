@@ -20,7 +20,6 @@ jobs:
         with:
           node-version: 18
 
-      # ✅ FIX: Java pod Android
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -33,7 +32,6 @@ jobs:
       - name: Install Capacitor
         run: npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      # ✅ FIX: poprawny webDir (musi być www)
       - name: Create capacitor config
         run: |
           echo '{
@@ -46,13 +44,13 @@ jobs:
             }
           }' > capacitor.config.json
 
-      # ✅ FIX: tworzymy www żeby Capacitor nie crashował
-      - name: Prepare www folder      
-    run: |
-    rm -rf www
-    mkdir www
-    cp index.html www/
-    cp manifest.json www/ || true
+      # ✅ POPRAWIONE WCIĘCIA
+      - name: Prepare www folder
+        run: |
+          rm -rf www
+          mkdir www
+          cp index.html www/
+          cp manifest.json www/ || true
 
       - name: Init Capacitor
         run: npx cap init
@@ -60,11 +58,9 @@ jobs:
       - name: Add Android
         run: npx cap add android
 
-      # ✅ FIX: wymagany krok
       - name: Copy project
         run: npx cap copy
 
-      # ✅ FIX: usuwa błędy Gradle cache
       - name: Clean Gradle cache
         run: rm -rf ~/.gradle/caches/
 
@@ -79,3 +75,4 @@ jobs:
         with:
           name: SPPWarszawa-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+``
