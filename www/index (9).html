@@ -1,0 +1,4817 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+<link rel="manifest" href="/SPPWarszawa/manifest.json">
+<meta name="theme-color" content="#020617">
+
+<title>Monitoring Parkomatów</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+  
+
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0b1220;
+  color:#e5e7eb;
+}
+:root{
+  --header-h: 50px;
+  --sidebar-w: 72px;
+  --bottom-bar: 50px;
+}
+
+header{
+  height:60px;
+  background:#020617;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 10px;
+
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  z-index:3000;
+}
+.sidebar{
+  position:fixed;
+  top:60px;
+  left:0;
+  bottom:0;
+  width:72px;
+  background:#020617;
+  border-right:1px solid #1f2937;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding-top:12px;
+  gap:10px;
+  z-index:2500;
+}
+
+.nav-btn{
+  width:56px;
+  height:56px;
+  border:none;
+  border-radius:14px;
+  background:transparent;
+  color:#e5e7eb;
+  font-size:20px;
+  cursor:pointer;
+  transition:0.2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+
+.nav-btn span{
+  display:none;
+}
+
+.nav-btn:hover{
+  background:#111827;
+}
+
+.nav-btn.active{
+  background:#1d4ed8;
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+  .sidebar{
+    width:100%;
+    height:50px;
+    top:auto;
+    bottom:0;
+    flex-direction:row;
+    justify-content:space-around;
+    border-right:none;
+    border-top:1px solid #1f2937;
+    padding-top:0;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+
+ .main{
+    left:0 !important;
+
+    bottom:calc(
+      var(--bottom-bar)
+      + env(safe-area-inset-bottom)
+      + 20px
+    ) !important;
+
+    padding-bottom:40px;
+  }
+
+  .nav-btn{
+    width:60px;
+    height:60px;
+  }
+}
+.header-left{
+  font-weight:500;
+}
+
+.header-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+
+
+
+#alarmCounter{
+  background:#dc2626;
+  padding:4px 10px;
+  border-radius:20px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  min-width:50px;    /* 🔥 minimalna szerokość */
+  font-size:14px;
+  white-space:nowrap; /* 🔥 nie łamie tekstu */
+}
+
+
+#adminPanel input,
+#adminPanel select {
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #1f2937;
+  background:#020617;
+  color:white;
+  margin-bottom:8px;
+}
+/* ✅ kontener admin */
+
+
+
+
+#adminPanel{
+  min-height:100%;
+  padding:20px 20px 40px 20px;
+}
+
+
+
+
+/* ✅ główny wrapper */
+
+
+.admin-container{
+  width:100%;
+  max-width:1100px;   /* może być szerzej */
+  margin:0;           /* 🔥 usunięcie centrowania */
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  align-items:flex-start; 
+}
+
+
+
+/* ✅ karta */
+.admin-card{
+  background:#020617;
+  width:100%;
+  border:1px solid #1f2937;
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.5);
+}
+
+/* ✅ pola */
+
+.admin-card input,
+.admin-card select{
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #1f2937;
+  background:#020617;
+  color:#e5e7eb;              /* 🔥 lepszy kontrast */
+  margin-bottom:12px;         /* 🔥 więcej odstępu */
+  transition:border-color .2s ease; /* 🔥 subtelny efekt */
+}
+
+/* ✅ focus – najważniejsze */
+.admin-card input:focus,
+.admin-card select:focus{
+  border-color:#2563eb;
+  outline:none;
+}
+
+
+/* ✅ grid dla struktur */
+
+
+
+.struct-grid{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.struct-header{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+}
+
+.node-list.hidden{
+  display:none;
+}
+
+.node-list{
+  margin-top:8px;
+  margin-left:20px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:flex-start;
+}
+
+
+/* ✅ pojedyncza struktura */
+.struct-box{
+  border:1px solid #1f2937;
+  border-radius:10px;
+  padding:10px;
+}
+
+/* ✅ checkbox inline */
+
+
+.struct-box label{
+  display:grid;
+  grid-template-columns: 20px auto;  /* 🔥 checkbox + tekst */
+  align-items:center;
+  gap:10px;
+}
+
+
+
+
+.struct-box label span{
+  word-break: break-word;
+}
+
+
+
+
+/* ✅ nodes lista */
+
+.node-list{
+  margin-top:8px;
+  margin-left:12px;  /* 🔥 lepsze wyrównanie */
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+
+/* ✅ przyciski */
+.admin-tabs{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.admin-tab-btn.active{
+  background:#1d4ed8;
+}
+  
+#adminPanel h2 {
+  margin-bottom: 10px;
+}
+
+.admin-box {
+  background:#020617;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #1f2937;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+
+
+.main{
+  position:fixed;
+  top:var(--header-h);
+  left:var(--sidebar-w);
+  right:0;
+  bottom:0;
+  overflow-y:auto;
+  padding-bottom:20px;
+}
+
+
+
+
+
+.section{
+  display:none;
+  width:100%;
+  padding:16px;
+  box-sizing:border-box;
+}
+
+
+
+
+
+.section.active{
+  display:block;
+}
+
+/* 🔘 przycisk */
+
+
+
+
+/* 📦 panel */
+
+
+#map{
+  position:absolute;
+  z-index:0;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+}
+
+/* ✅ NOWY MOBILNY PANEL FILTRÓW */
+.filter-bar.mobile{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap:8px;
+  padding:10px;
+  background:#020617;
+  border-bottom:1px solid #1f2937;
+
+  position:relative;  /* ✅ zamiast sticky */
+  z-index:1;           /* ✅ nisko */
+}
+
+
+.filter-item{
+  display:flex;
+  flex-direction:row;     /* 🔥 zmiana z column */
+  align-items:center;     /* 🔥 wyśrodkowanie w pionie */
+
+  background:#020617;
+  border:1px solid #1f2937;
+  border-radius:10px;
+  padding:8px;
+  gap:6px;                /* lekko więcej, żeby odsunąć ikonkę */
+}
+
+
+
+.filter-item span{
+  font-size:12px;
+  opacity:0.7;
+  margin-bottom:2px;
+}
+
+
+.filter-item input{
+  flex:1;
+  background:transparent;
+  border:none;
+  color:white;
+  font-size:14px;
+  outline:none;
+}
+
+/* ✅ SELECT musi mieć tło */
+.filter-item select{
+  flex:1;
+  background:#020617;   /* 🔥 KLUCZOWE */
+  border:none;
+  color:white;
+  font-size:14px;
+  outline:none;
+}
+
+select,input{
+  font-size:14px;
+}
+
+.terminal-box{
+  background:#0b1220;
+  margin:12px;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #1f2937;
+}
+
+.leaflet-popup-content{
+  width:280px !important;
+  word-break:break-word;
+}
+
+#devicesSection{
+  padding-top: 0;
+}
+  
+#awarieSection,
+#historiaSection{
+  padding-top: 0;
+}
+
+/* ✅ pełne wymuszenie stylu date */
+input[type="date"] {
+  color: #ffffff !important;
+  background: #020617 !important;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 3px 6px;
+}
+
+/* ✅ tekst w środku */
+input[type="date"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #ffffff !important;
+}
+
+/* ✅ ikona kalendarza */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 1;
+}
+
+/* ✅ VERY IMPORTANT – mobile fix */
+input[type="date"] {
+  color-scheme: dark;
+}
+  /* ✅ FIX białego dropdowna na desktopie */
+  select {  background-color: #020617;  color: white;}
+  
+.event-name{
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.leaflet-control {
+  z-index: 4000 !important;
+}
+
+@media (max-width: 768px){
+  .leaflet-top {top: 150px !important;}
+  .leaflet-bottom {bottom: 2px !important;}
+  .leaflet-control-zoom {display: none;}
+}
+
+
+
+#mapSection{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  padding:0;
+  z-index:-1;   /* 🔥 KLUCZOWA ZMIANA */
+}
+
+
+#mapSection .filter-bar {
+  margin: 0;       /* ✅ usuwa odstęp */
+  border-radius: 0; /* (opcjonalnie – ładniej) */
+}
+
+#adminBtn{
+  display: none;
+}
+  .leaflet-top {
+  top: 60px !important;
+}
+  
+#interwencjeSection{
+  padding-top: 10px;
+}
+  
+.filter-bar{
+  margin-bottom:10px;
+}
+
+.admin-tab-btn{
+  background:#1f2937;
+  color:white;
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.admin-tab-btn:hover{
+  background:#374151;
+}
+
+#nodeFilterBox {
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  max-height:70px;
+  overflow:auto;
+}
+
+#nodeFilterBox label {
+  background:#111827;
+  padding:3px 6px;
+  border-radius:6px;
+  cursor:pointer;
+}
+.multi-select{
+  position:relative;
+  width:100%;
+}
+
+.select-box{
+  background:#020617;
+  border:1px solid #1f2937;
+  padding:6px 8px;
+  border-radius:8px;
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13px;
+}
+
+.options{
+  position:absolute;
+  top:105%;
+  left:0;
+  right:0;
+  background:#020617;
+  border:1px solid #1f2937;
+  border-radius:10px;
+  max-height:200px;
+  overflow:auto;
+  z-index:3000;
+  padding:6px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.options.hidden{
+  display:none;
+}
+
+.options label{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  cursor:pointer;
+  font-size:13px;
+  padding:4px;
+  border-radius:6px;
+}
+
+.options label:hover{
+  background:#111827;
+}
+.login-screen{
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:
+    linear-gradient(
+      135deg,
+      #0f172a,
+      #1e293b,
+      #2563eb
+    );
+  overflow:hidden;
+  z-index:99999;
+}
+
+.login-card{
+  width:420px;
+  max-width:90%;
+  padding:40px;
+  border-radius:28px;
+
+  background:rgba(255,255,255,0.08);
+
+  backdrop-filter:blur(18px);
+
+  border:1px solid rgba(255,255,255,0.15);
+
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.35);
+
+  text-align:center;
+}
+
+.logo-circle{
+  width:90px;
+  height:90px;
+  margin:auto;
+
+  border-radius:50%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:40px;
+  font-weight:700;
+
+  color:white;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #60a5fa
+    );
+}
+
+.login-logo h1{
+  margin-top:20px;
+  color:white;
+  font-size:30px;
+}
+
+.login-logo p{
+  color:#cbd5e1;
+  margin-top:5px;
+}
+
+.login-form{
+  margin-top:30px;
+}
+
+.login-form input{
+  width:100%;
+  padding:15px;
+  margin-bottom:15px;
+
+  border:none;
+  outline:none;
+
+  border-radius:14px;
+
+  background:
+    rgba(255,255,255,0.1);
+
+  color:white;
+
+  font-size:16px;
+}
+
+.login-form input::placeholder{
+  color:#cbd5e1;
+}
+
+.login-form button{
+  width:100%;
+  padding:15px;
+
+  border:none;
+  border-radius:14px;
+
+  cursor:pointer;
+
+  font-size:17px;
+  font-weight:600;
+
+  color:white;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #60a5fa
+    );
+
+  transition:0.3s;
+}
+
+.login-form button:hover{
+  transform:translateY(-2px);
+
+  box-shadow:
+    0 10px 30px rgba(37,99,235,0.5);
+}
+
+.login-footer{
+  margin-top:25px;
+  padding-top:18px;
+  border-top:1px solid rgba(255,255,255,.15);
+  text-align:center;
+  color:#94a3b8;
+  line-height:1.6;
+}
+
+.login-footer strong{
+  color:#fff;
+  font-size:15px;
+}
+
+.author{
+  margin-top:12px;
+}
+
+.author strong{
+  color:white;
+  font-size:15px;
+}
+.logo-icon{
+   width:80px;
+   height:80px;
+   margin:auto;
+   border-radius:20px;
+   background:#2563eb;
+   display:flex;
+   align-items:center;
+   justify-content:center;
+   font-size:42px;
+   box-shadow:0 10px 30px rgba(37,99,235,.4);
+}
+
+.login-corner-logo {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 250px;      /* możesz zmienić */
+  max-width: 40vw;   /* mobile */
+  height: auto;
+  z-index: 10001;
+  opacity: 0.95;
+}
+
+@media (max-width: 768px) {
+  .login-corner-logo {
+    width: 120px;
+    top: 10px;
+    left: 10px;
+  }
+}
+
+.serialBox button {
+  margin-top: 6px;
+  width: 100%;
+  padding: 12px;
+  font-size: 18px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 10px;
+}
+
+.serialBox input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid #374151;
+  margin-top: 6px;
+}
+/* 🔥 DUŻE checkboxy */
+#actionsBox input[type="checkbox"],
+#partsBox input[type="checkbox"] {
+  transform: scale(1.5);
+  margin-right: 10px;
+}
+
+/* 🔥 większy klik */
+#actionsBox label,
+#partsBox > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #111827;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+/* hover */
+#actionsBox label:hover,
+#partsBox > div:hover {
+  background: #1f2937;
+}
+.switch-btn {
+  background: #374151;   /* domyślny (jak Lista) */
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  margin: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.switch-btn:hover {
+  background: #4b5563;
+}
+
+.switch-btn.active {
+  background: #1d4ed8;   /* 🔵 aktywny */
+}
+
+
+</style>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+</head>
+
+<body>
+  
+
+<div id="authBox" class="login-screen">
+
+<!-- 🔝 LOGO W LEWYM GÓRNYM ROGU -->
+  <img src="cpg-logo-new.png" class="login-corner-logo" alt="CPG Logo">
+
+  <div class="login-card">
+
+    <!-- LOGO -->
+    <div class="login-logo">
+      <div class="logo-icon">🅿️</div>
+      <h1>SPP Warszawa</h1>
+      <p>Monitoring Parkomatów</p>
+    </div>
+
+    <!-- FORM -->
+    <div class="login-form">
+      <h3>🔐 Logowanie</h3>
+
+      <input 
+        id="email" 
+        type="email" 
+        placeholder="Email" 
+        autofocus
+      >
+
+      <input 
+        id="password" 
+        type="password" 
+        placeholder="Hasło"
+      >
+
+      <button onclick="login()">
+        Zaloguj się
+      </button>
+    </div>
+
+    <!-- STOPKA -->
+    <div class="login-footer">
+      <div class="version">
+        Wersja 2.0
+      </div>
+
+      <div class="author">
+        Projekt i wykonanie<br>
+        <strong>Piotr Mądrzak</strong>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<header>
+
+  <div class="header-left">
+    Monitoring Parkomatów
+  </div>
+
+  <div class="header-right">
+  
+
+<button id="refreshBtn" onclick="refreshApp()" style="
+  background:#1f2937;
+  color:white;
+  border:none;
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+">
+  <span id="refreshIcon">🔄</span>
+</button>
+
+
+  <div id="alarmCounter" onclick="showStats()" style="cursor:pointer;">
+    0
+  </div>
+
+  <div id="userBadge" style="
+    margin-left:10px;
+    background:#1f2937;
+    padding:4px 10px;
+    border-radius:10px;
+    font-size:13px;
+  "></div>
+
+  <button onclick="logout()" style="
+    margin-left:8px;
+    background:#374151;
+    color:white;
+    border:none;
+    padding:6px 10px;
+    border-radius:8px;
+    cursor:pointer;
+  ">
+    🔓
+  </button>
+</div>
+</header>
+<!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+
+  <button class="nav-btn active"
+    title="Mapa"
+          onclick="setActiveNav(this);showSection('mapSection')">
+    🗺️ <span>Mapa</span>
+  </button>
+
+  <button class="nav-btn"
+    title="Awarie"
+          onclick="setActiveNav(this);showSection('awarieSection')">
+    ⚠️ <span>Awarie</span>
+  </button>
+
+  <button class="nav-btn"
+    title="Historia"
+          onclick="setActiveNav(this);showSection('historiaSection')">
+    📜 <span>Historia</span>
+  </button>
+<button class="nav-btn"
+        title="Urządzenia"
+        onclick="setActiveNav(this);showSection('devicesSection')">
+  🖥️ <span>Urządzenia</span>
+</button>
+
+<button class="nav-btn"
+  title="Interwencje"
+  onclick="setActiveNav(this);showSection('interwencjeSection')">
+  🧰 <span>Interwencje</span>
+</button>
+  
+
+<button id="adminBtn" class="nav-btn"
+  title="Admin"
+  onclick="setActiveNav(this);showSection('adminPanel')">
+  👤 <span>Admin</span>
+</button>
+
+<button class="nav-btn"
+  title="Konto"
+  onclick="setActiveNav(this);showSection('userPanel')">
+  👤 <span>Konto</span>
+</button>
+
+
+</div>
+<div class="main">
+
+<!-- MAPA -->
+<div id="mapSection" class="section active">
+
+  <div class="filter-bar mobile">
+    
+
+<div class="filter-item">
+  <span>📍</span>
+
+  <div class="multi-select" id="nodeMultiSelect">
+    <div class="select-box" onclick="toggleNodeDropdown()">
+      <span id="nodeSelectedText">Wybierz strefy</span>
+      ▼
+    </div>
+
+    <div class="options hidden" id="nodeOptions"></div>
+  </div>
+</div>
+
+    
+ <!-- ✅ NOWY PRÓG -->
+  <div class="filter-item">
+    <span>🔥</span>
+    <select id="thresholdSelect" onchange="refreshApp()">
+      <option value="1" selected>🔥 Czuły (1)</option>
+      <option value="7">⚖️ Standard (7)</option>
+      <option value="15">🧊 Duże (15)</option>
+    </select>
+  </div>
+
+<div class="filter-item">
+  <span>⏱️</span>
+  <select id="timeSelect" onchange="refreshApp()">
+    <option value="24">24h</option>
+    <option value="48">48h</option>
+    <option value="72">72h</option>
+  </select>
+</div>
+
+  </div>
+
+  <div id="map"></div>
+
+</div>
+
+<!-- AWARIE -->
+<div id="awarieSection" class="section">
+
+  <div class="filter-bar mobile">
+
+ <div class="filter-item">
+  <span>📍</span>
+  <select id="activeNodeFilter" onchange="renderActiveList()">
+    <option value="">Wszystkie strefy</option>
+  </select>
+</div>
+    
+<div class="filter-item">
+  <span>📅</span>
+  <input 
+    type="text" 
+    placeholder="Data od"
+    id="activeDateFrom"
+    onchange="renderActiveList()"
+    onfocus="this.type='date'"
+    onblur="if(!this.value)this.type='text'">
+</div>
+
+
+
+
+    <div class="filter-item">
+      <span>➡️</span>   
+<input 
+  type="text" 
+  placeholder="Data do"
+  id="activeDateTo"
+  onchange="renderActiveList()"
+  onfocus="this.type='date'"
+  onblur="if(!this.value)this.type='text'">
+    </div>
+
+    <div class="filter-item">
+      <span>🔎</span>
+      <input type="text" id="activeTerminalFilter" placeholder="Nr parkomatu" oninput="renderActiveList()">
+    </div>
+
+    <div class="filter-item">
+      <span>⚠️</span>
+      <select id="activeEventFilter" onchange="renderActiveList()"></select>
+    </div>
+
+  </div>
+
+  <div id="awarieList"></div>
+</div>
+
+<!-- HISTORIA -->
+<div id="historiaSection" class="section">
+
+  <div class="filter-bar mobile">
+<div class="filter-item">
+  <span>📍</span>
+  <select id="historyNodeFilter" onchange="renderHistoryList()">
+    <option value="">Wszystkie strefy</option>
+  </select>
+</div>
+    
+    <div class="filter-item">
+      <span>📅</span>
+      <input type="text" 
+  placeholder="Data od"
+        id="historyDateFrom" onchange="renderHistoryList()" onfocus="this.type='date'"
+  onblur="if(!this.value)this.type='text'">
+    </div>
+    
+ <div class="filter-item">
+      <span>➡️</span>
+      <input type="text" 
+  placeholder="Data do" id="historyDateTo" onchange="renderHistoryList()"
+        onfocus="this.type='date'"
+  onblur="if(!this.value)this.type='text'">
+    </div>
+    
+    <div class="filter-item">
+      <span>🔎</span>
+      <input type="text" id="historyTerminalFilter" placeholder="Nr parkomatu" oninput="renderHistoryList()">
+    </div>
+
+    <div class="filter-item">
+      <span>📜</span>
+      <select id="historyEventFilter" onchange="renderHistoryList()"></select>
+    </div>
+
+  </div>
+
+  <div id="historiaList"></div>
+
+  
+</div>
+
+
+<!-- URZĄDZENIA -->
+<div id="devicesSection" class="section">
+
+  <div class="filter-bar mobile">
+
+<div class="filter-item">
+  <span>📍</span>
+  <select id="deviceNodeFilter" onchange="renderDevicesList()">
+    <option value="">Wszystkie strefy</option>
+  </select>
+</div>
+
+    <div class="filter-item" style="grid-column:1 / -1;">
+      <span>🔎</span>
+      <input
+        type="text"
+        id="deviceSearch"
+        placeholder="Szukaj numeru lub adresu..."
+        oninput="renderDevicesList()">
+    </div>
+
+  </div>
+
+  <div id="devicesList"></div>
+</div>
+<div id="interwencjeSection" class="section">
+<div class="filter-bar mobile">
+
+  <div class="filter-item">
+    <span>📅</span>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; width:100%;">
+      
+<input type="date" id="statsFrom" onchange="renderInterStats(); renderInterwencje()">
+<input type="date" id="statsTo" onchange="renderInterStats(); renderInterwencje()">
+
+      
+      <select onchange="setDateRange(this.value)" style="margin-left:6px;">
+        <option value="">📅 Własny zakres</option>
+        <option value="today">Dziś</option>
+        <option value="week">Ostatnie 7 dni</option>
+        <option value="month">Obecny miesiąc</option>
+        <option value="prevMonth">Poprzedni miesiąc</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="filter-item">
+    <span>🔎</span>
+    <input type="text" id="interTerminalFilter" placeholder="Nr parkomatu"
+           oninput="renderInterwencje()">
+  </div>
+
+  <div class="filter-item">
+    <span>👤</span>
+    <select id="interUserFilter" onchange="renderInterwencje()">
+      <option value="">👤 Wszyscy pracownicy</option>
+    </select>
+  </div>
+
+  <div class="filter-item">
+    <span>⚙️</span>
+    <select id="interTypeFilter" onchange="renderInterwencje()">
+      <option value="">Wszystkie</option>
+      <option value="wymiany">🔧 Wymiany</option>
+      <option value="operacje">⚙️ Operacje</option>
+    </select>
+  </div>
+
+</div>
+  <button onclick="openManualServiceModal()" style="
+    background:#7c3aed;
+    color:white;
+    padding:10px;
+    border:none;
+    border-radius:10px;
+    margin:10px;
+  ">
+    ➕ Dodaj interwencję
+  </button>
+  <button id="statsBtn"
+  class="switch-btn"
+  onclick="switchInterView('stats')">
+  📊 Statystyki
+</button>
+
+<button id="listBtn"
+  class="switch-btn active"
+  onclick="switchInterView('list')">
+  📋 Lista
+</button>
+
+
+<div id="interwencjeList"></div>
+</div>
+  <div id="userPanel" class="section">
+
+  <h2>👤 Moje konto</h2>
+
+  <div class="admin-card">
+
+    <h3>🔑 Hasło</h3>
+
+    <button onclick="resetPassword(window.currentUser.email)" style="
+      background:#7c3aed;
+      color:white;
+      padding:10px;
+      border:none;
+      border-radius:10px;
+    ">
+      🔑 Resetuj hasło (mail)
+    </button>
+
+  </div>
+
+  <div class="admin-card">
+
+    <h3>📍 Lokalizacja</h3>
+
+    <p style="font-size:13px;color:#9ca3af;">
+      Możesz w każdej chwili wycofać zgodę na śledzenie GPS.
+      Spowoduje to zatrzymanie wysyłania lokalizacji.
+    </p>
+
+    <button onclick="revokeConsent()" style="
+      background:#dc2626;
+      color:white;
+      padding:10px;
+      border:none;
+      border-radius:10px;
+    ">
+      ❌ Cofnij zgodę na lokalizację
+    </button>
+
+  </div>
+
+</div>
+  <div id="adminPanel" class="section">
+
+  <div class="admin-container">
+
+    <h2>👤 Panel admina</h2>
+
+    <div class="admin-tabs">
+      <button onclick="showAdminTab('addUser')" class="admin-tab-btn">
+        ➕ Dodaj użytkownika
+      </button>
+
+      <button onclick="showAdminTab('manageUsers')" class="admin-tab-btn">
+        📋 Zarządzaj użytkownikami
+      </button>
+      
+<button onclick="showAdminTab('parkomaty')" class="admin-tab-btn">
+  🅿️ Parkomaty
+</button>
+
+<button onclick="showAdminTab('config')" class="admin-tab-btn">
+  ⚙️ Słowniki
+</button>
+
+    </div>
+
+    <!-- ✅ DODAWANIE -->
+    <div id="adminAddUser">
+
+      <div class="admin-card">
+
+        <input id="newFirstName" placeholder="Imię">
+        <input id="newLastName" placeholder="Nazwisko">
+        <input id="newEmail" placeholder="Email">
+        <input id="newPassword" type="password" placeholder="Hasło">
+
+        <select id="newRole">
+          <option value="serwis">Serwis</option>
+          <option value="admin">Admin</option>
+        </select>
+
+      </div>
+
+      <div class="admin-card">
+        <h3>📍 Struktury / Miasta</h3>
+        <div id="structuresBox" class="struct-grid"></div>
+      </div>
+
+      <button onclick="createUser()" style="
+        background:#16a34a;
+        color:white;
+        padding:12px;
+        border:none;
+        border-radius:10px;
+      ">
+        ✅ Utwórz użytkownika
+      </button>
+
+    </div>
+
+    <!-- ✅ LISTA -->
+    <div id="adminManageUsers" style="display:none;">
+      <div class="admin-card">
+        <h3>📋 Użytkownicy</h3>
+        <div id="usersList"></div>
+      </div>
+    </div>
+<div id="adminParkomaty" style="display:none;">
+  <div class="admin-card">
+    <h3>🅿️ Parkomaty</h3>
+
+    <button onclick="openAddParkomatModal()" style="
+      background:#16a34a;
+      color:white;
+      padding:10px;
+      border:none;
+      border-radius:10px;
+      margin-bottom:10px;
+    ">
+      ➕ Dodaj parkomat
+    </button>
+
+<input 
+      type="text"
+      id="parkomatSearch"
+      placeholder="🔎 Szukaj numeru lub adresu..."
+      oninput="renderParkomatyAdminList()"
+      style="
+        width:100%;
+        padding:10px;
+        border-radius:10px;
+        border:1px solid #1f2937;
+        background:#020617;
+        color:white;
+        margin-bottom:10px;
+      "
+    >
+
+    <div id="parkomatyList"></div>
+  </div>
+</div>
+    <div id="adminConfig" style="display:none;">
+
+  <div class="admin-card">
+    <h3>🔧 Części</h3>
+
+    <input id="newPart" placeholder="Nowa część">
+
+    <button onclick="addPart()" style="margin:5px 0;">
+      ➕ Dodaj
+    </button>
+
+    <div id="partsList"></div>
+  </div>
+
+  <div class="admin-card">
+    <h3>⚙️ Czynności</h3>
+
+    <input id="newAction" placeholder="Nowa czynność">
+
+    <button onclick="addAction()" style="margin:5px 0;">
+      ➕ Dodaj
+    </button>
+
+    <div id="actionsList"></div>
+  </div>
+
+</div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<!-- ✅ MODAL SERWIS -->
+<div id="serviceModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:5000;
+">
+
+
+<div style="
+  background:#020617;
+  padding:16px;
+  border-radius:12px;
+  width:90%;
+  max-width:520px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+
+  max-height:80vh;
+  overflow-y:auto;
+">
+
+
+<h3>🔧 Interwencja Serwisowa</h3>
+
+<input
+  type="text" 
+  id="deviceSearchInput"
+  placeholder="🔎 Nr lub adres parkomatu..."
+  oninput="filterDevicesForSelect()"
+  style="padding:8px;border-radius:8px;"
+>
+
+<select id="deviceSelect" style="max-height:150px;overflow:auto;"></select>
+
+<select id="techSelect" style="display:none;"></select>
+
+<div id="actionsBox" style="max-height:250px;overflow:auto;"></div>
+  <h4>⚙️ Wymienione podzespoły</h4>
+<div id="partsBox" style="max-height:250px;overflow:auto;"></div>
+
+<button onclick="submitService()" style="
+  background:#16a34a;color:white;padding:10px;border:none;border-radius:8px;">
+  ✅ Zapisz
+</button>
+
+<button onclick="closeModal()" style="
+  background:#374151;color:white;padding:8px;border:none;border-radius:8px;">
+  Anuluj
+</button>
+
+</div>
+</div>
+ 
+<div id="editUserModal"style="
+  inset:0; 
+  position:fixed;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+   z-index:6000;
+">
+
+
+<div style="
+background:#020617;
+padding:16px;
+border-radius:12px;
+width:90%;
+max-width:400px;
+max-height:85vh;
+display:flex;
+flex-direction:column;
+gap:10px;
+overflow:hidden;
+">
+
+<h3>✏️ Edytuj użytkownika</h3>
+
+<div style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px;">
+
+  <input id="editFirstName" placeholder="Imię">
+  <input id="editLastName" placeholder="Nazwisko">
+
+  <select id="editRole">
+    <option value="serwis">Serwis</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <h4>Struktury</h4>
+  <div id="editStructures"></div>
+
+</div>
+
+<div style="
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:10px;
+  position:sticky;
+  bottom:20px;
+  background:#020617;
+  padding-top:10px;
+">
+
+  <button onclick="saveUserEdit()"style="
+  background:#16a34a;
+  color:white;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+    ">✅ Zapisz</button>
+  <button onclick="closeEditModal()" 
+    style="
+  background:#374151;
+  color:white;
+  padding:8px;
+  border:none;
+  border-radius:8px;
+">❌ Anuluj</button>
+
+</div>
+</div>
+</div>
+  <!-- ✅ MODAL PARKOMAT -->
+<div id="parkomatModal" style="
+position:fixed;
+inset:0;
+background:rgba(0,0,0,0.7);
+display:none;
+justify-content:center;
+align-items:center;
+z-index:7000;
+">
+
+<div style="
+background:#020617;
+padding:16px;
+border-radius:12px;
+width:90%;
+max-width:400px;
+display:flex;
+flex-direction:column;
+gap:10px;
+">
+
+<h3 id="parkomatModalTitle">🅿️ Parkomat</h3>
+
+<input id="pm_id" placeholder="Numer">
+<input id="pm_location" placeholder="Adres">
+<input id="pm_node" placeholder="Strefa-dla serwisu">
+<input id="pm_node2" placeholder="Miasto / struktura dla widoku admin">
+<input id="pm_lat" placeholder="Lat">
+<input id="pm_lng" placeholder="Lng">
+<input id="pm_structure" placeholder="Structure do email">
+
+<button onclick="saveParkomat()" style="
+  background:#16a34a;
+  color:white;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+">
+  ✅ Zapisz
+</button>
+
+<button onclick="closeParkomatModal()" style="
+  background:#374151;
+  color:white;
+  padding:8px;
+  border:none;
+  border-radius:8px;
+">
+  Anuluj
+</button>
+
+</div>
+  
+</div>
+  <div id="rodoModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.8);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:10000;
+">
+
+<div style="
+  background:#020617;
+  padding:20px;
+  border-radius:12px;
+  max-width:400px;
+  width:90%;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+">
+
+<h3>📍 Zgoda na lokalizację</h3>
+
+<p style="font-size:14px; color:#cbd5f5;">
+Aplikacja wykorzystuje Twoją lokalizację GPS w celu
+monitorowania pracy serwisu oraz wsparcia działań operacyjnych.
+
+Twoja lokalizacja będzie widoczna dla administratora systemu.
+</p>
+
+<label style="display:flex; gap:6px;">
+  <input type="checkbox" id="rodoCheck">
+  Wyrażam zgodę na przetwarzanie lokalizacji
+</label>
+
+<button onclick="acceptRodo()" style="
+  background:#16a34a;
+  border:none;
+  padding:10px;
+  border-radius:8px;
+  color:white;
+">
+  ✅ Akceptuję
+</button>
+
+</div>
+</div>
+  
+<!-- ✅ JS zostaje praktycznie bez zmian -->
+<script>
+const SUPABASE_URL = "https://tiplqkdmgahdeoseahsd.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpcGxxa2RtZ2FoZGVvc2VhaHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MjgyOTIsImV4cCI6MjA5NjUwNDI5Mn0.40_rGmSdhBW2SKGG8wgrGq4--n9qT578StHVzsSD_8w";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  
+let editingUserId = null;
+let editingParkomatKey = null;
+
+window.currentUser = null;
+async function login(){
+
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  // ✅ logowanie
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if(error){
+    console.error("LOGIN ERROR:", error);
+    alert("❌ " + error.message);
+    return;
+  }
+
+  // ✅ pobierz profil
+  const { data: profile, error: profileError } = await supabaseClient
+    .from("users")
+    .select("*")
+    .eq("id", data.user.id)
+    .single();
+
+  if(profileError || !profile){
+    alert("❌ Brak profilu użytkownika");
+    console.error(profileError);
+    return;
+  }
+
+  window.currentUser = profile;
+
+  // ✅ blokada konta
+  if(profile.is_active === false){
+    alert("⛔ Konto zablokowane");
+    await supabaseClient.auth.signOut();
+    return;
+  }
+
+  // ✅ UI
+  document.getElementById("authBox").style.display = "none";
+
+  const fullName = profile.first_name
+    ? profile.first_name + " " + (profile.last_name || "")
+    : data.user.email;
+
+  document.getElementById("userBadge").innerText = "👤 " + fullName.trim();
+
+  // ✅ ONLINE STATUS
+  await supabaseClient
+    .from("users")
+    .update({
+      is_online: true,
+      last_seen: new Date().toISOString()
+    })
+    .eq("id", data.user.id);
+
+  // ✅ role
+  applyUserRole(profile);
+
+  // ✅ dane
+  await init();
+
+  // ✅ RODO
+  if(!profile.location_consent){
+    document.getElementById("rodoModal").style.display = "flex";
+  }else{
+    startGeoTracking();
+  }
+
+  // ✅ sekcja
+  showSection('mapSection');
+}
+  
+async function checkAuth(){
+
+// ✅ zabezpieczenie — checkbox reset
+document.getElementById("rodoCheck").checked = false;
+
+  const { data } = await supabaseClient.auth.getSession();
+
+  if(!data.session){
+    document.getElementById("authBox").style.display = "flex";
+    return;
+  }
+
+  // ✅ profil
+  const { data: profile, error } = await supabaseClient
+    .from("users_status")
+    .select("*")
+    .eq("id", data.session.user.id)
+    .single();
+
+  if(error || !profile){
+    console.error("PROFILE ERROR:", error);
+    await supabaseClient.auth.signOut();
+    document.getElementById("authBox").style.display = "flex";
+    return;
+  }
+
+  // ✅ 🔒 wylogowanie przez admina
+  if(profile.is_online === false || profile.is_active === false){
+    alert("🔒 Zostałeś wylogowany przez administratora");
+
+    await supabaseClient.auth.signOut();
+    document.getElementById("authBox").style.display = "flex";
+    return;
+  }
+
+  window.currentUser = profile;
+
+  // ✅ UI
+  document.getElementById("authBox").style.display = "none";
+
+  const fullName = profile.first_name
+    ? profile.first_name + " " + (profile.last_name || "")
+    : data.session.user.email;
+
+  document.getElementById("userBadge").innerText =
+    "👤 " + fullName.trim();
+
+  // ✅ role
+  applyUserRole(profile);
+
+  // ✅ dane
+  await init();
+
+  // ✅ RODO (🔥 kluczowe)
+  if(!profile.location_consent){
+    document.getElementById("rodoModal").style.display = "flex";
+  }else{
+    startGeoTracking();
+  }
+
+  showSection('mapSection');
+}
+
+async function logout(){
+
+  if(window.currentUser){
+    await supabaseClient
+      .from("users")
+      .update({
+        is_online: false
+      })
+      .eq("id", window.currentUser.id);
+  }
+
+  await supabaseClient.auth.signOut();
+
+  document.getElementById("authBox").style.display = "flex";
+  document.getElementById("userBadge").innerText = "";
+
+  window.currentUser = null;
+
+  showSection('mapSection');
+}
+function renderAdminPanel(){
+
+  const structBox = document.getElementById("structuresBox");
+
+  // ✅ mapowanie: node_2 → node
+  const map = {};
+
+  Object.values(allParkomaty).forEach(p => {
+
+    const main = p.node_2 || p.node;  // ✅ główna grupa dla admina
+    const sub = p.node;               // ✅ oryginalna strefa
+
+    if(!main) return;
+
+    if(!map[main]){
+      map[main] = new Set();
+    }
+
+    if(sub){
+      map[main].add(sub);
+    }
+  });
+
+  // ✅ generowanie HTML
+  structBox.innerHTML = Object.keys(map).sort().map(struct => {
+
+    const nodes = [...map[struct]].sort();
+
+    return `
+<div class="struct-box">
+
+  <div class="struct-header" onclick="toggleStruct(this)">
+    <input type="checkbox" value="${struct}" class="structCheck">
+    <b>${struct}</b>
+    <span class="arrow">▶</span>
+  </div>
+
+  <div class="node-list hidden">
+    ${nodes.map(n => `
+      <label>
+        <input type="checkbox" value="${n}" class="nodeCheck" data-struct="${struct}">
+        <span>${n}</span>
+      </label>
+    `).join("")}
+  </div>
+
+</div>
+`;
+
+  }).join("");
+
+  showAdminTab("addUser");
+}
+function showAdminTab(tab){
+  document.getElementById("adminConfig").style.display = "none";
+  document.getElementById("adminAddUser").style.display = "none";
+  document.getElementById("adminManageUsers").style.display = "none";
+  document.getElementById("adminParkomaty").style.display = "none";
+  document.querySelectorAll(".admin-tab-btn")
+    .forEach(b => b.classList.remove("active"));
+
+  if(tab === "addUser"){
+    document.getElementById("adminAddUser").style.display = "block";
+    document.querySelectorAll(".admin-tab-btn")[0].classList.add("active");
+  }
+
+  if(tab === "manageUsers"){
+    document.getElementById("adminManageUsers").style.display = "block";
+    document.querySelectorAll(".admin-tab-btn")[1].classList.add("active");
+  }
+  
+if(tab === "parkomaty"){
+  document.getElementById("adminParkomaty").style.display = "block";
+  document.querySelectorAll(".admin-tab-btn")[2].classList.add("active");
+  renderParkomatyAdminList(); // ✅ załaduj listę
+}
+if(tab === "config"){
+  document.getElementById("adminConfig").style.display = "block";
+  document.querySelectorAll(".admin-tab-btn")[3].classList.add("active");
+
+  renderParts();
+  renderActions();
+}
+}
+  
+  document.addEventListener("change", (e) => {
+
+  // ✅ ADD USER
+  if(e.target.classList.contains("structCheck")){
+    const struct = e.target.value;
+    const checked = e.target.checked;
+
+    document
+      .querySelectorAll(`.nodeCheck[data-struct="${struct}"]`)
+      .forEach(cb => cb.checked = checked);
+  }
+
+  // ✅ EDIT USER
+  if(e.target.classList.contains("editStructCheck")){
+    const struct = e.target.value;
+    const checked = e.target.checked;
+
+    document
+      .querySelectorAll(`.editNodeCheck[data-struct="${struct}"]`)
+      .forEach(cb => cb.checked = checked);
+  }
+
+});
+
+async function createUser(){
+  
+  const firstName = document.getElementById("newFirstName").value.trim();
+  const lastName = document.getElementById("newLastName").value.trim();
+  const email = document.getElementById("newEmail").value.toLowerCase().trim();
+  const password = document.getElementById("newPassword").value;
+  const role = document.getElementById("newRole").value;
+
+ 
+
+// ✅ zbierz struktury (Set usuwa duplikaty)
+
+const selectedStructs = new Set(
+  [...document.querySelectorAll(".structCheck:checked")]
+    .map(el => el.value)
+);
+
+document.querySelectorAll(".nodeCheck:checked").forEach(el => {
+  selectedStructs.add(el.dataset.struct);
+});
+
+const structures = [...selectedStructs];
+
+const nodes = [
+  ...document.querySelectorAll(".nodeCheck:checked")
+].map(el => el.value);
+
+
+  if(!email || !password || !firstName){
+  alert("❌ Uzupełnij dane");
+  return;
+}
+
+if(!isValidEmail(email)){
+  alert("❌ Niepoprawny email");
+  return;
+}
+
+// ✅ sprawdź czy email istnieje
+const { data: existingUser } = await supabaseClient
+  .from("users")
+  .select("id")
+  .eq("email", email)
+  .maybeSingle();
+
+if(existingUser){
+  alert("❌ Użytkownik z takim emailem już istnieje");
+  return;
+}
+
+  try{
+
+    // ✅ 1. Tworzenie usera w Supabase Auth
+    
+const { data, error } = await supabaseClient.auth.signUp({
+  email,
+  password
+});
+
+
+    
+
+if(error){
+  console.error("AUTH ERROR:", error);
+  alert("❌ " + error.message);
+  return;
+}
+
+ 
+
+
+    const userId = data.user.id;
+
+    // ✅ 2. Zapis do tabeli users
+    const { error: insertError } = await supabaseClient
+      .from('users')
+      .insert({
+        id: userId,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        role: role,
+        structures: structures,
+        nodes: nodes
+      });
+
+    
+if(insertError){
+  console.error("INSERT ERROR:", insertError);
+  alert("❌ " + insertError.message);
+  return;
+}
+
+
+    alert("✅ Użytkownik utworzony");
+    
+// ✅ reset pól
+document.getElementById("newFirstName").value = "";
+document.getElementById("newLastName").value = "";
+document.getElementById("newEmail").value = "";
+document.getElementById("newPassword").value = "";
+document.getElementById("newRole").value = "serwis";
+
+// ✅ odznacz checkboxy
+document.querySelectorAll(".structCheck").forEach(el => el.checked = false);
+document.querySelectorAll(".nodeCheck").forEach(el => el.checked = false);
+
+  }catch(e){
+    console.error(e);
+    alert("❌ Błąd");
+  }
+  await loadUsers();
+  
+
+alert("✅ Użytkownik utworzony");
+
+}
+
+  
+function makeKey(id, structure) {
+  return `${id}|${(structure || "").trim().toUpperCase()}`;
+}
+
+function getNavLink(lat, lng){
+
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if(isIOS){
+    return `maps://?daddr=${lat},${lng}`; // ✅ Apple Maps (pewne)
+  }
+
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; // ✅ stabilne na PC
+}
+
+/* ===== SHEETS ===== */
+//const PARKOMATY_URL="parkomaty.json";
+//const ACTIVE_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=0&single=true&output=csv";
+//const HISTORY_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=1220391858&single=true&output=csv";
+
+//onst ACTIONS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=1441340771&single=true&output=csv";
+
+//const USERS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=2025072242&single=true&output=csv";
+//const INTERWENCJE_URL ="https://docs.google.com/spreadsheets/d/e/2PACX-1vTj9Z5qWrmqdo88LUJtOcJsUkaNZEhxfsXTucOKWI2hbwtUKdGwdvQn4JsR7Wj27TJwxW7H0jnODbfR/pub?gid=1460522074&single=true&output=csv";
+let serviceActions = [];
+let technicians = [];
+let interwencje = [];
+let currentService = null;
+let deviceOptionsCache = [];
+let serviceParts = [];
+
+/* ===== MAPA ===== */
+
+let map = L.map('map', {
+  zoomControl: true
+}).setView([52.23218, 21.00788], 12);
+
+// baza – light
+const satelita = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {
+    attribution: '&copy; Esri & contributors'
+  }
+);
+// baza – light
+const light = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+  {
+    maxZoom: 18,
+    attribution: '&copy; Esri'
+  }
+);
+// baza – dark
+const dark = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  {
+    attribution: '&copy; OpenStreetMap &copy; CARTO'
+  }
+);
+
+// domyślna warstwa
+dark.addTo(map);
+
+// przełącznik warstw
+const baseMaps = {
+  "Satelita": satelita,
+  "Ciemna mapa": dark,
+  "Jasna mapa" : light
+};
+
+L.control.layers(baseMaps, null, {
+  position: 'bottomleft'
+}).addTo(map);
+
+
+// Twoje markery
+let markerLayer = L.layerGroup().addTo(map);  // ✅ parkomaty
+let userLayer = L.layerGroup().addTo(map);   // ✅ Uzytkownicy
+
+/* ===== DATA ===== */
+let allParkomaty={};
+let userLocations = [];
+let userMarkers = {};
+let activeEvents={};
+let historyEvents=[];
+const RED_CODES = ["16384","16385","16386","16900"];
+function getNode(p){
+
+  // ✅ admin widzi nową strukturę
+  if(window.currentUser?.role === "admin"){
+    return p.node_2 || p.node;
+  }
+
+  // ✅ reszta – stara
+  return p.node;
+}
+
+function parseUTC(dateStr){
+  if(!dateStr) return null;
+
+  const iso = dateStr
+    .replace(" ", "T")
+    .split(".")[0] + "Z";
+
+  const d = new Date(iso);
+
+  return isNaN(d) ? null : d;  // ✅ BRAKOWAŁO
+}
+  
+
+function formatDatePL(dateStr){
+  if(!dateStr) return "";
+
+  const d = parseUTC(dateStr);  // ✅ używamy poprawnej funkcji
+
+  if(!d) return dateStr;
+
+  return d.toLocaleString("pl-PL", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+ 
+function toLocalDateInput(date){
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset*60000);
+  return local.toISOString().slice(0,10);
+}
+
+/* ===== CSV ===== */
+function parseCSV(text){
+  const rows=[];
+  const lines=text.replace(/^\uFEFF/,"").split(/\r?\n/);
+  for(let line of lines){
+    if(!line.trim()) continue;
+    rows.push(line.split(",").map(v=>v.replace(/^"|"$/g,"")));
+  }
+  return rows;
+}
+
+function isValidEmail(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/* ===== Lista działan serwisu ===== */
+async function loadServiceActions(){
+
+  const { data, error } = await supabaseClient
+    .from("actions")
+    .select("*");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+ 
+serviceActions = data
+  .map(a => a.name)
+  .sort((a, b) => a.localeCompare(b, 'pl'));
+
+}
+
+
+async function loadTechnicians(){
+
+  const { data, error } = await supabaseClient
+    .from("users_status").select("*");
+
+  if(error){
+    console.error("BŁĄD USERS:", error);
+    return;
+  }
+
+  technicians = data.map(u => ({
+    name: `${u.first_name || ""} ${u.last_name || ""}`.trim(),
+    email: u.email,
+    role: u.role
+  }));
+}
+
+ async function loadParts(){
+
+  const { data, error } = await supabaseClient
+    .from("parts")
+    .select("*");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  
+serviceParts = data
+  .sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+
+} 
+async function loadUserLocations(){
+
+  const { data, error } = await supabaseClient
+    .from("user_locations_full")
+    .select("*")
+    .eq("is_online", true)
+    .eq("location_consent", true);
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  userLocations = data;
+}
+/* ===== LOAD PARKOMATY ===== */
+async function loadParkomaty(){
+
+  let allData = [];
+  let from = 0;
+  const limit = 1000;
+
+  while(true){
+
+    const { data, error } = await supabaseClient
+      .from("parkomaty")
+      .select("*")
+      .range(from, from + limit - 1);
+
+    if(error){
+      console.error(error);
+      return;
+    }
+
+    allData = allData.concat(data);
+
+    if(data.length < limit){
+      break; // ✅ koniec (ostatnia paczka)
+    }
+
+    from += limit;
+  }
+
+  const nodeSet = new Set();
+  allParkomaty = {};
+
+  
+allData.forEach(p => {
+
+  const key = makeKey(p.id, p.structure);
+
+  const park = {
+    id: p.id,
+    structure: p.structure,
+    lat: Number(p.lat),
+    lng: Number(p.lng),
+    location: p.location,
+    node: p.node,
+    node_2: p.node_2 || p.node
+  };
+
+  allParkomaty[key] = park;
+
+  // ✅ 🔥 FILTR UPRAWNIEŃ
+const nodeVal = getNode(park);
+if(nodeVal) nodeSet.add(nodeVal);
+});
+
+  console.log("✅ ZAŁADOWANO:", allData.length);
+
+  const nodes = [...nodeSet].sort();
+renderNodeFilter(nodes);
+
+const options =
+  `<option value="">Wszystkie strefy</option>` +
+  nodes.map(n => `<option value="${n}">${n}</option>`).join('');
+
+  // ✅ zapamiętaj poprzednie wartości
+const prevActiveNode = document.getElementById("activeNodeFilter").value;
+const prevHistoryNode = document.getElementById("historyNodeFilter").value;
+const prevDeviceNode = document.getElementById("deviceNodeFilter").value;
+
+// ✅ ustaw nowe opcje
+document.getElementById("activeNodeFilter").innerHTML = options;
+document.getElementById("historyNodeFilter").innerHTML = options;
+document.getElementById("deviceNodeFilter").innerHTML = options;
+
+// ✅ przywróć poprzedni wybór (jeśli nadal istnieje)
+if([...document.getElementById("activeNodeFilter").options].some(o => o.value === prevActiveNode)){
+  document.getElementById("activeNodeFilter").value = prevActiveNode;
+}
+
+if([...document.getElementById("historyNodeFilter").options].some(o => o.value === prevHistoryNode)){
+  document.getElementById("historyNodeFilter").value = prevHistoryNode;
+}
+
+if([...document.getElementById("deviceNodeFilter").options].some(o => o.value === prevDeviceNode)){
+  document.getElementById("deviceNodeFilter").value = prevDeviceNode;
+}
+}
+
+
+/* ===== LOAD ACTIVE ===== */
+async function loadActive(){
+
+  // ✅ 1. POBIERZ NORMALNE BŁĘDY
+  const { data, error } = await supabaseClient
+  .from("active_events")
+  .select("*")
+  .neq("level", "RESET")
+  .not("level", "is", null);
+
+if (error) {
+  console.error(error);
+  return;
+}
+
+const threshold = Number(
+  document.getElementById("thresholdSelect")?.value || 7
+);
+
+const hours = Number(
+  document.getElementById("timeSelect")?.value || 24
+);
+
+const now = new Date();
+
+activeEvents = {};
+let count = 0;
+
+data.forEach(e => {
+
+  const key = makeKey(e.id, e.structure);
+  if (!allParkomaty[key]) return;
+
+  const isInfo = e.event_level_name === "Informacja";
+
+  let add = false;
+
+  // ✅ INFO → filtr licznik + czas
+  if (isInfo) {
+
+    if (!e.info_count) return;
+
+    const d = new Date(e.date);
+    if (!d) return;
+
+    const diffHours = (now - d) / (1000 * 60 * 60);
+
+    if (e.info_count >= threshold && diffHours <= hours) {
+      add = true;
+    }
+
+  } 
+  // ✅ ERROR → zawsze pokazuj
+  else {
+    add = true;
+  }
+
+  if (!add) return;
+
+  if (!activeEvents[key]) activeEvents[key] = [];
+
+  
+activeEvents[key].push({
+  name: e.event_name,
+  code: e.event_code,
+  hardware: e.hardware,
+  date: e.date,
+  count: isInfo ? e.info_count : 1,
+  level: e.event_level_name
+});
+
+
+  count++;
+
+});
+  
+}
+
+/* ===== LOAD HISTORY ===== */
+async function loadHistory(){
+
+  const { data, error } = await supabaseClient
+    .from("history_events")
+    .select("*");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  historyEvents = data;
+}
+  /* ===== LOAD Interwencje ===== */
+async function loadInterwencje(){
+
+  const { data, error } = await supabaseClient
+    .from("interwencje2")
+    .select("*")
+    .order("start_date", { ascending: false });
+
+  if(error){
+    console.error("BŁĄD INTERWENCJI:", error);
+    return;
+  }
+
+  interwencje = data;
+}
+  
+/* ===== UI ===== */
+function showSection(id){
+
+  let finalId = id;
+
+  // 🔒 blokada admina
+  if(id === "adminPanel"){
+    if(!window.currentUser || window.currentUser.role !== "admin"){
+      console.warn("Brak dostępu do admina");
+      finalId = "mapSection";
+    }
+  }
+
+  // ✅ zmiana sekcji
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById(finalId).classList.add("active");
+
+  // ✅ poprawka aktywnego przycisku
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+
+  const btnMap = {
+    mapSection: "🗺️",
+    awarieSection: "⚠️",
+    historiaSection: "📜",
+    devicesSection: "🖥️",
+    interwencjeSection: "🧰",
+    adminPanel: "👤",
+    userPanel: "👤"
+  };
+
+  const targetBtn = [...document.querySelectorAll(".nav-btn")]
+    .find(b => b.innerText.includes(btnMap[finalId]));
+
+  if(targetBtn){
+    targetBtn.classList.add("active");
+  }
+
+  // ✅ mapa refresh
+  if(finalId==="mapSection"){
+    setTimeout(()=>map.invalidateSize(),200);
+  }
+  
+if(finalId === "interwencjeSection"){
+  switchInterView('list');
+}
+}
+function setActiveNav(btn){
+
+  document
+    .querySelectorAll(".nav-btn")
+    .forEach(b=>b.classList.remove("active"));
+
+  btn.classList.add("active");
+}
+
+function openServiceModal(key, event){
+
+  currentService = {key, event};
+
+  const techSelect = document.getElementById("techSelect");
+
+  
+techSelect.innerHTML = technicians
+  .filter(t => t.role === "serwis")
+  .map(t => `<option value="${t.name}">${t.name}</option>`)
+  .join('');
+
+
+  const box = document.getElementById("actionsBox");
+  
+const partsBox = document.getElementById("partsBox");
+
+partsBox.innerHTML = serviceParts.map(p => `
+  <div>
+
+    <label>
+      
+
+<input 
+  type="checkbox"
+  value="${p.name}"
+  data-serial="${p.serial_number}"
+  onchange="toggleSerialInput(this, '${p.serial_number}')"
+>
+
+
+      ${p.name}
+    </label>
+
+    <div class="serialBox" style="display:none;">
+      <input class="serialInput" placeholder="Numer seryjny">
+      <button onclick="scanBarcode(this)">📷</button>
+    </div>
+
+  </div>
+`).join('');
+
+
+
+  box.innerHTML = serviceActions.map(a => `
+    <label style="display:flex;gap:6px;">
+      <input type="checkbox" value="${a}">
+      ${a}
+    </label>
+  `).join('');
+
+  document.getElementById("serviceModal").style.display = "flex";
+}
+function openManualServiceModal(){
+
+  currentService = {
+    key: null,
+    
+event: {
+  name: "Interwencja serwisowa",
+  date: new Date().toISOString()
+}
+
+  };
+
+  // ✅ lista parkomatów
+  const deviceSelect = document.getElementById("deviceSelect");
+
+  
+
+deviceOptionsCache = Object.values(allParkomaty)
+  .sort((a,b)=>a.id.localeCompare(b.id));
+
+
+renderDeviceOptions(deviceOptionsCache);
+document.getElementById("deviceSearchInput").value = "";
+  // ✅ technicy
+  const techSelect = document.getElementById("techSelect");
+
+  
+techSelect.innerHTML = technicians
+  .map(t => `<option value="${t.name}">${t.name}</option>`)
+  .join('');
+
+
+  // ✅ czynności
+  const box = document.getElementById("actionsBox");
+  const partsBox = document.getElementById("partsBox");
+
+partsBox.innerHTML = serviceParts.map(p => `
+  <div>
+
+    <label>
+      
+
+<input 
+  type="checkbox"
+  value="${p.name}"
+  data-serial="${p.serial_number}"
+  onchange="toggleSerialInput(this, '${p.serial_number}')"
+>
+
+
+      ${p.name}
+    </label>
+
+    <div class="serialBox" style="display:none;">
+      <input class="serialInput" placeholder="Numer seryjny">
+      <button onclick="scanBarcode(this)">📷</button>
+    </div>
+
+  </div>
+`).join('');
+
+
+  box.innerHTML = serviceActions.map(a => `
+    <label style="display:flex;gap:6px;">
+      <input type="checkbox" value="${a}">
+      ${a}
+    </label>
+  `).join('');
+
+  document.getElementById("serviceModal").style.display = "flex";
+}
+function renderDeviceOptions(list) {
+
+  const deviceSelect = document.getElementById("deviceSelect");
+
+  deviceSelect.innerHTML = list.map(p => `
+    <option value="${makeKey(p.id,p.structure)}">
+      ${p.id} - ${p.location}
+    </option>
+  `).join('');
+}
+  function filterDevicesForSelect(){
+
+  const search = document
+    .getElementById("deviceSearchInput")
+    .value
+    .toLowerCase();
+
+  const filtered = deviceOptionsCache.filter(p => {
+
+    const text = `${p.id} ${p.location}`.toLowerCase();
+
+    return text.includes(search);
+  });
+
+  renderDeviceOptions(filtered);
+}
+function closeModal(){
+  document.getElementById("serviceModal").style.display = "none";
+}
+//const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyR-RNSAU5ePpx0NpWRoNHMfvANKbxLBFU7a8xmAAaL5s9mHdE774Yxcbriqof4PT6NNw/exec";
+
+async function submitService(){
+
+  const user = window.currentUser
+    ? `${window.currentUser.first_name || ""} ${window.currentUser.last_name || ""}`.trim()
+    : "unknown";
+
+  const actions = [...document.querySelectorAll("#actionsBox input:checked")]
+    .map(el => el.value);
+
+const parts = [];
+const partsWithSerial = [];
+
+document
+  .querySelectorAll("#partsBox input[type=checkbox]:checked")
+  .forEach(cb => {
+
+    const partName = cb.value;
+
+    const serial = cb
+      .parentElement
+      .nextElementSibling
+      ?.querySelector(".serialInput")
+      ?.value || null;
+// ✅ WALIDACJA NUMERU SERYJNEGO
+    if(cb.checked && cb.dataset.serial === "tak" && !serial){
+      alert(`❌ Podaj numer seryjny dla: ${partName}`);
+      throw new Error("Brak numeru seryjnego");
+    }
+    // do starego systemu
+    parts.push(partName);
+
+    // do nowej tabeli
+    partsWithSerial.push({
+      part_name: partName,
+      serial_number: serial
+    });
+  });
+  
+
+  if(!user){
+    alert("❌ Wybierz pracownika");
+    return;
+  }
+
+  if(actions.length === 0){
+    alert("❌ Wybierz czynności");
+    return;
+  }
+
+  let {key, event} = currentService;
+
+  if(!key){
+    key = document.getElementById("deviceSelect").value;
+  }
+
+  const p = allParkomaty[key];
+
+  if(!p){
+    alert("❌ Nie znaleziono parkomatu");
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const d = parseUTC(event.date);
+
+  try{
+
+    // ✅ ZAPIS INTERWENCJI (KLUCZOWE)
+    const { data: interData, error } = await supabaseClient
+  .from("interwencje2")
+  .insert([{
+    device_id: p.id,
+    structure: p.structure,
+    location: p.location,
+    event_name: event.name,
+    start_date: d ? d.toISOString() : now,
+    end_date: now,
+    user_id: window.currentUser.id,
+    user_email: user,
+    actions: actions,
+    parts: parts,
+    hardware: event.hardware
+  }])
+  .select()
+  .single();
+if(partsWithSerial.length){
+
+  const rows = partsWithSerial.map(pw => ({
+    interwencja_id: interData.id,
+    device_id: p.id,
+    part_name: pw.part_name,
+    serial_number: pw.serial_number
+  }));
+
+  await supabaseClient
+    .from("interwencje_parts")
+    .insert(rows);
+}
+
+    if(error){
+      console.error(error);
+      alert("❌ Błąd zapisu");
+      return;
+    }
+
+    const isInfoSpike = currentService?.event?.code === "INFO_SPAM";
+
+    // ===================================================
+    // ✅ NORMALNA AWARIA (ERROR)
+    // ===================================================
+    if(currentService.key && !isInfoSpike){
+
+      await supabaseClient
+        .from("active_events")
+        .delete()
+        .match({
+          id: p.id,
+          structure: p.structure,
+          event_code: event.code
+        });
+
+      await supabaseClient
+        .from("history_events")
+        .insert([{
+          id: p.id,
+          structure: p.structure,
+          event_name: event.name,
+          event_code: event.code,
+          hardware: event.hardware,
+          start_date: d ? d.toISOString() : now,
+          end_date: now
+        }]);
+    }
+
+    // ===================================================
+    // ✅ INFO_SPAM (KLUCZOWE — TWOJE PYTANIE)
+    // ===================================================
+    if(currentService.key && isInfoSpike){
+
+      // ✅ pobierz wszystkie INFO dla hardware
+      const { data: infoRows } = await supabaseClient
+        .from("active_events")
+        .select("date")
+        .match({
+          id: p.id,
+          structure: p.structure,
+          hardware: event.hardware
+        });
+
+      let startDate = d;
+
+      if(infoRows && infoRows.length > 0){
+        startDate = infoRows
+          .map(e => new Date(e.date))
+          .sort((a,b)=>a-b)[0];
+      }
+
+      // ✅ zapis JEDNEGO wpisu do historii
+      await supabaseClient
+        .from("history_events")
+        .insert([{
+          id: p.id,
+          structure: p.structure,
+          event_name: `INFO (${event.hardware}) – obsłużone`,
+          event_code: "INFO_SPAM",
+          hardware: event.hardware,
+          start_date: startDate ? startDate.toISOString() : now,
+          end_date: now
+        }]);
+
+      // ✅ USUNIĘCIE wszystkich INFO dla hardware
+      await supabaseClient
+        .from("active_events")
+        .delete()
+        .match({
+          id: p.id,
+          structure: p.structure,
+          hardware: event.hardware
+        });
+    }
+
+    // ✅ komunikat
+    if(currentService.key){
+      alert("✅ Awaria zamknięta");
+    }else{
+      alert("✅ Interwencja zapisana");
+    }
+
+     // ✅ UI cleanup
+    if(currentService.key){
+      activeEvents[key] = activeEvents[key].filter(e => e !== event);
+
+      if(activeEvents[key].length === 0){
+        delete activeEvents[key];
+      }
+    }
+
+    closeModal();
+    renderAll();
+
+    if(currentService.key){
+      showSection('mapSection');
+    }else{
+      showSection('interwencjeSection');
+    }
+
+    await loadInterwencje();
+    renderInterwencje();
+
+  }catch(e){
+    console.error(e);
+    alert("❌ Błąd operacji");
+  }
+}
+
+/* ===== MAP + AUTO CENTER ===== */
+function renderMarkers(){
+markerLayer.clearLayers();
+  const nodes = getSelectedNodes();
+
+  let points = [];
+
+  // ✅ PARKOMATY
+  Object.keys(activeEvents).forEach(key => {
+
+    const p = allParkomaty[key];
+    if(!p) return;
+    if(nodes.length && !nodes.includes(getNode(p))) return;
+
+    let popup = `<b>Parkomat ${p.id}</b><br>${p.location}<br><br>`;
+
+    activeEvents[key].forEach(e => {
+      
+const isInfo = e.count > 1;
+
+popup += `
+  • <b>${e.hardware || "Inne"}</b> – ${
+    isInfo
+      ? `ℹ️${e.name} (${e.count})`
+      : e.name
+  }<br>
+  <small>${formatDatePL(e.date)}</small><br>
+`;
+
+    });
+
+    popup += `
+      <br>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}"
+         target="_blank"
+         style="background:#16a34a;color:white;padding:6px 10px;border-radius:6px;text-decoration:none;">
+         🧭 Nawiguj
+      </a>
+    `;
+
+    // ✅ sprawdzanie krytycznych kodów
+    const codes = activeEvents[key].map(e => (e.code ? String(e.code).trim() : ""));
+    const hasCritical = codes.some(code => RED_CODES.includes(code));
+
+    const icon = L.divIcon({
+      className: '',
+      html: `
+        <div style="
+          width:22px;
+          height:22px;
+          border-radius:50%;
+          background:${hasCritical ? '#dc2626' : '#16a34a'};
+          border:2px solid white;
+          box-shadow:0 0 8px rgba(0,0,0,0.6);
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          font-size:12px;
+          color:white;
+          font-weight:bold;
+        ">
+          ${activeEvents[key].reduce((sum, e) => sum + (e.count || 1), 0)}
+        </div>
+      `
+    });
+
+    L.marker([p.lat, p.lng], { icon })
+      .bindPopup(popup)
+      .addTo(markerLayer);
+
+    // ✅ FIX (tu musi być p)
+    points.push([p.lat, p.lng]);
+  });
+
+  // ✅ 👤 LOKALIZACJE USERÓW
+  userLocations.forEach(u => {
+
+    if(window.currentUser?.role !== "admin"){
+      if(u.user_id !== window.currentUser?.id) return;
+    }
+
+    if(!u.lat || !u.lng){
+      console.log("❌ brak GPS:", u);
+      return;
+    }
+
+    const name = `${u.first_name || ""} ${u.last_name || ""}`;
+
+    const icon = L.divIcon({
+      className: '',
+      html: `
+        <div style="
+          width:18px;
+          height:18px;
+          border-radius:50%;
+          background:#3b82f6;
+          border:2px solid white;
+          box-shadow:0 0 6px black;
+        "></div>
+      `
+    });
+
+    if(!userMarkers[u.user_id]){
+
+  userMarkers[u.user_id] = L.marker([u.lat, u.lng], { icon })
+    .bindPopup(`
+      <b>👤 ${name.trim() || "User"}</b><br>
+    `)
+    .addTo(userLayer);
+
+}else{
+
+  userMarkers[u.user_id].setLatLng([u.lat, u.lng]); // ✅ przesunięcie zamiast resetu
+}
+
+    // ✅ FIX (tu musi być u, NIE p)
+    points.push([u.lat, u.lng]);
+  });
+  
+Object.keys(userMarkers).forEach(id => {
+
+  const exists = userLocations.find(u => u.user_id === id);
+
+  if(!exists){
+    userLayer.removeLayer(userMarkers[id]);
+    delete userMarkers[id];
+  }
+
+});
+
+
+  // ✅ CENTROWANIE MAPY
+  if(points.length === 0){
+    map.setView([52.2297,21.0122],6);
+  }
+  else if(points.length === 1){
+    map.setView(points[0],15);
+  }
+  else{
+    map.fitBounds(L.latLngBounds(points), {
+      padding: [50, 50],
+      maxZoom: 16
+    });
+  }
+}
+
+/* ===== FILTR AWARII (RESTORED) ===== */
+function populateActiveEventFilter(){
+
+  const set=new Set();
+
+  Object.values(activeEvents).forEach(arr=>{
+    arr.forEach(e=>{
+      if(e.name) set.add(e.name);
+    });
+  });
+
+  document.getElementById("activeEventFilter").innerHTML=
+    `<option value="">Wszystkie awarie</option>`+
+    [...set].sort().map(e=>`<option value="${e}">${e}</option>`).join('');
+}
+
+/* ===== FILTR HISTORII (RESTORED) ===== */
+function populateEventFilter(){
+
+  const set=new Set();
+
+  historyEvents.forEach(r=>{
+    if(r.event_name) set.add(r.event_name);
+  });
+
+  document.getElementById("historyEventFilter").innerHTML=
+    `<option value="">Wszystkie awarie</option>`+
+    [...set].sort().map(e=>`<option value="${e}">${e}</option>`).join('');
+}
+
+/* ===== AWARIE ===== */
+function renderActiveList(){
+
+  const node = document.getElementById("activeNodeFilter").value;
+  const from = document.getElementById("activeDateFrom").value;
+  const to = document.getElementById("activeDateTo").value;
+  const terminal = (document.getElementById("activeTerminalFilter").value || "").toLowerCase();
+  const event = document.getElementById("activeEventFilter").value;
+
+  let html = "";
+
+  Object.keys(activeEvents).forEach(key => {
+
+    const p = allParkomaty[key];
+    if(!p) return;
+    const id = p.id;
+
+    const filtered = activeEvents[key].filter(e => {
+
+      // ✅ bezpieczne parsowanie daty
+      const raw = e.date;
+      if(!raw) return false;
+
+      
+
+
+const d = parseUTC(raw);
+if(!d) return false;
+
+
+// ✅ blokada śmieciowych dat
+if(!raw || isNaN(d) || raw.length < 10) return false;
+
+
+
+      
+// ✅ filtr OD (początek dnia)
+if(from){
+  const fromDate = new Date(from + "T00:00:00Z");
+
+  if(d < fromDate) return false;
+}
+
+
+      // ✅ filtr DO (cały dzień!)
+      if(to){
+        const toDate = new Date(to + "T23:59:59Z");
+        if(d > toDate) return false;
+      }
+
+      // ✅ filtr po numerze
+      if(terminal && !id.toLowerCase().includes(terminal)) return false;
+
+      // ✅ filtr po typie zdarzenia
+      if(event && e.name !== event) return false;
+
+      // ✅ filtr po strefie
+      if(node && getNode(p) !== node) return false;
+
+      return true;
+    });
+
+    if(filtered.length === 0) return;
+
+    html += `
+      <div class="terminal-box">
+        <b>Parkomat ${id}</b><br>
+        ${p.location}<br><br>
+    `;
+
+    
+filtered.forEach(e => {
+  
+const isInfo = e.level === "Informacja";  
+html += `
+    • <b>${e.hardware || "Inne"}</b> – ${
+      isInfo
+        ? `${e.name} (${e.count})`
+        : e.name
+    }<br>
+    <small>${formatDatePL(e.date)}</small><br>
+
+    
+<button 
+  class="fixBtn"
+  data-key="${key}"
+  data-event='${encodeURIComponent(JSON.stringify(e))}'
+  style="
+    margin-top:6px;
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:5px 8px;
+    border-radius:6px;
+  "
+>
+  🔧 Usuń awarię
+</button>
+
+
+    <br><br>
+  `;
+});
+
+// ✅ ZAMKNIĘCIE BOXA
+html += `</div>`;
+});
+
+  document.getElementById("awarieList").innerHTML = html;
+}
+
+/* ===== HISTORIA ===== */
+function renderHistoryList(){
+
+  const node = document.getElementById("historyNodeFilter").value;
+  const from = document.getElementById("historyDateFrom").value;
+  const to = document.getElementById("historyDateTo").value;
+  const terminal = (document.getElementById("historyTerminalFilter").value || "").toLowerCase();
+  const event = document.getElementById("historyEventFilter").value;
+
+  let html = "";
+
+  historyEvents.forEach(r => {
+
+    const key = makeKey(r.id, r.structure);
+    const p = allParkomaty[key];
+
+    if(!p) return;
+
+    const id = r.id;
+
+    // ✅ 🔥 NAPRAWA – filtr strefy
+    if(node && getNode(p) !== node) return;
+
+    if (terminal && !id.toLowerCase().includes(terminal)) return;
+    if (event && r.event_name !== event) return;
+
+    const d = parseUTC(r.start_date);
+    if (!d) return;
+
+    if (from) {
+      const f = new Date(from + "T00:00:00Z");
+      if (d < f) return;
+    }
+
+    if (to) {
+      const t = new Date(to + "T23:59:59Z");
+      if (d > t) return;
+    }
+
+    html += `
+      <div class="terminal-box">
+        
+      <b>Parkomat ${id}</b><br>
+
+      <small style="color:#9ca3af;">
+        ${r.hardware || "Brak danych"}
+      </small><br>
+
+      <div class="event-name">
+        ${r.event_name}
+      </div>
+
+      Od: ${formatDatePL(r.start_date)}
+      Do: ${formatDatePL(r.end_date)}
+
+      </div>
+    `;
+  });
+
+  document.getElementById("historiaList").innerHTML = html;
+}
+
+/* ===== URZĄDZENIA ===== */
+function renderDevicesList(){
+  const node = document.getElementById("deviceNodeFilter").value;
+  const search = document
+    .getElementById("deviceSearch")
+    .value
+    .trim()
+    .toLowerCase();
+
+  let html = "";
+
+ Object.values(allParkomaty)
+  .sort((a,b)=>a.id.localeCompare(b.id))
+  .forEach(p=>{
+
+    // ✅ 🔥 NAJWAŻNIEJSZE – filtr uprawnień
+
+    const text = `
+      ${p.id}
+      ${p.location}
+    `.toLowerCase();
+
+    if(search && !text.includes(search)) return;
+    if(node && getNode(p) !== node) return;
+
+    const key = makeKey(p.id, p.structure);
+
+    const alarms = activeEvents[key]?.length || 0;
+
+
+      html += `
+  <div class="terminal-box">
+
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    ">
+
+      <div>
+        <b>Parkomat ${p.id}</b><br>
+        ${p.location}<br>
+
+        <small style="color:#9ca3af;">
+          Strefa: ${getNode(p) || "-"}
+        </small>
+      </div>
+
+      <div style="
+        min-width:50px;
+        text-align:center;
+        padding:6px 10px;
+        border-radius:10px;
+        background:${alarms ? '#dc2626' : '#16a34a'};
+        color:white;
+        font-weight:bold;
+      ">
+        ${alarms}
+      </div>
+
+    </div>
+
+    <!-- ✅ NOWY PRZYCISK -->
+    <div style="margin-top:10px;">
+      <a 
+        href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}"
+        target="_blank"
+        style="
+          display:inline-block;
+          background:#16a34a;
+          color:white;
+          padding:6px 10px;
+          border-radius:8px;
+          text-decoration:none;
+          font-size:14px;
+        ">
+        🧭 Nawiguj
+      </a>
+    </div>
+
+  </div>
+`;
+    });
+
+  document.getElementById("devicesList").innerHTML = html;
+}
+  function renderParkomatyAdminList(){
+
+  const box = document.getElementById("parkomatyList");
+
+  const search = (document.getElementById("parkomatSearch")?.value || "")
+    .toLowerCase()
+    .trim();
+
+  let filtered = Object.values(allParkomaty)
+    .sort((a,b)=>a.id.localeCompare(b.id));
+
+  // ✅ FILTR
+  if(search){
+    filtered = filtered.filter(p => {
+
+      const text = `${p.id} ${p.location}`.toLowerCase();
+
+      return text.includes(search);
+    });
+  }
+
+  let html = "";
+
+  filtered.forEach(p => {
+
+    html += `
+      <div class="terminal-box">
+
+        <b>${p.id}</b><br>
+        ${p.location}<br>
+
+        <small style="color:#9ca3af;">
+          ${p.node_2 || p.node}
+        </small><br>
+
+        <small>
+          ${p.lat}, ${p.lng}
+        </small><br><br>
+
+        <button onclick="openEditParkomat('${makeKey(p.id,p.structure)}')"
+          style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          ✏️ Edytuj
+        </button>
+
+      </div>
+    `;
+  });
+
+  if(filtered.length === 0){
+    html = `<div style="padding:10px;">❌ Brak wyników</div>`;
+  }
+
+  box.innerHTML = html;
+}
+  function openEditParkomat(key){
+
+  editingParkomatKey = key;
+
+  const p = allParkomaty[key];
+  if(!p) return;
+
+  document.getElementById("parkomatModalTitle").innerText = "✏️ Edytuj parkomat";
+
+  document.getElementById("pm_id").value = p.id;
+  document.getElementById("pm_id").disabled = true;
+  document.getElementById("pm_location").value = p.location;
+  document.getElementById("pm_node").value = p.node;
+  document.getElementById("pm_node2").value = p.node_2;
+  document.getElementById("pm_lat").value = p.lat;
+  document.getElementById("pm_lng").value = p.lng;
+  document.getElementById("pm_structure").value = p.structure;
+
+  document.getElementById("parkomatModal").style.display = "flex";
+}
+  function openAddParkomatModal(){
+
+  editingParkomatKey = null;
+
+  document.getElementById("parkomatModalTitle").innerText = "➕ Nowy parkomat";
+
+  document.getElementById("pm_id").value = "";
+  document.getElementById("pm_id").disabled = false;
+  document.getElementById("pm_location").value = "";
+  document.getElementById("pm_node").value = "";
+  document.getElementById("pm_node2").value = "";
+  document.getElementById("pm_lat").value = "";
+  document.getElementById("pm_lng").value = "";
+  document.getElementById("pm_structure").value = "";
+
+  document.getElementById("parkomatModal").style.display = "flex";
+}
+  async function saveParkomat(){
+
+  const obj = {
+    id: document.getElementById("pm_id").value.trim(),
+    location: document.getElementById("pm_location").value.trim(),
+    node: document.getElementById("pm_node").value.trim(),
+    node_2: document.getElementById("pm_node2").value.trim(),
+    lat: Number(document.getElementById("pm_lat").value),
+    lng: Number(document.getElementById("pm_lng").value),
+    structure: document.getElementById("pm_structure").value.trim()
+  };
+
+  
+if(!obj.id){
+  alert("❌ Brak numeru");
+  return;
+}
+
+if(isNaN(obj.lat) || isNaN(obj.lng)){
+  alert("❌ Lat/Lng muszą być liczbami");
+  return;
+}
+
+if(Math.abs(obj.lat) > 90 || Math.abs(obj.lng) > 180){
+  alert("❌ Nieprawidłowe współrzędne");
+  return;
+}
+
+
+  let error;
+
+  
+
+if (editingParkomatKey) {
+
+  const [origId] = editingParkomatKey.split("|");
+
+  const { data, error } = await supabaseClient
+    .from("parkomaty")
+    .update(obj)
+    .eq("id", origId)
+    .select();
+
+  console.log("UPDATE RESULT:", data);
+
+}
+
+
+else{
+  const { error } = await supabaseClient
+    .from("parkomaty")
+    .insert([obj]);
+}
+
+  if(error){
+    console.error(error);
+    alert("❌ Błąd zapisu");
+    return;
+  }
+
+  alert("✅ Zapisano");
+
+  closeParkomatModal();
+
+  await loadParkomaty();
+  renderParkomatyAdminList();
+}
+  function closeParkomatModal(){
+  document.getElementById("parkomatModal").style.display = "none";
+}
+
+  function populateUserFilter(){
+
+  const select = document.getElementById("interUserFilter");
+  if(!select) return;
+
+  // zbierz unikalnych użytkowników
+  const users = [...new Set(
+    interwencje
+      .map(i => i.user_email)
+      .filter(Boolean)
+  )].sort();
+
+  select.innerHTML =
+    `<option value="">👤 Wszyscy pracownicy</option>` +
+    users.map(u => `<option value="${u}">${u}</option>`).join('');
+}
+
+function renderInterwencje(){
+
+  const terminal = (document.getElementById("interTerminalFilter").value || "").toLowerCase();
+  const from = document.getElementById("statsFrom").value;
+  const to = document.getElementById("statsTo").value;
+  const userInput = document.getElementById("interUserFilter")?.value;
+  const typeFilter = document.getElementById("interTypeFilter")?.value;
+
+  let html = "";
+
+  interwencje.forEach(i => {
+
+  const d = parseUTC(i.start_date);
+  if(!d) return;
+
+  if(from){
+    const f = new Date(from + "T00:00:00Z");
+    if(d < f) return;
+  }
+
+  if(to){
+    const t = new Date(to + "T23:59:59Z");
+    if(d > t) return;
+  }
+
+    const isAdmin = window.currentUser?.role === "admin";
+
+    const key = makeKey(i.device_id, i.structure);
+    const p = allParkomaty[key];
+
+    if(!p) return;
+
+    if(terminal && !(i.device_id || "").toLowerCase().includes(terminal)) return;
+    if(isAdmin && userInput && i.user_email !== userInput) return;
+
+    // ✅ ACTIONS
+    const actions = Array.isArray(i.actions)
+      ? i.actions
+      : (i.actions || "").split(",").map(s => s.trim());
+
+    // ✅ PARTS (NOWA LOGIKA)
+    let parts = [];
+
+    if(Array.isArray(i.parts)){
+      parts = i.parts;
+    }
+    else if(typeof i.parts === "object" && i.parts !== null){
+      parts = Object.values(i.parts);
+    }
+    else if(typeof i.parts === "string"){
+      try{
+        parts = JSON.parse(i.parts);
+      }catch{
+        parts = [i.parts];
+      }
+    }
+
+    // ✅ FILTR TYPU
+    if(typeFilter){
+      if(typeFilter === "wymiany" && parts.length === 0) return;
+      if(typeFilter === "operacje" && parts.length > 0) return;
+    }
+
+    // ✅ PODZIAŁ
+    const grouped = {
+      operacje: [],
+      serwis: []
+    };
+
+    actions.forEach(a => {
+      if(!a) return;
+
+      if(a.toLowerCase().includes("czyszczenie")){
+        grouped.serwis.push(a);
+      }else{
+        grouped.operacje.push(a);
+      }
+    });
+
+    html += `
+    <div class="terminal-box">
+
+      <b>Parkomat ${i.device_id}</b><br>
+      ${i.location}<br><br>
+
+      <b>${i.event_name}</b><br>
+
+      <small>
+        
+Od: ${formatDatePL(i.start_date)}
+Do: ${formatDatePL(i.end_date)}
+
+      </small><br><br>
+
+      👤 ${i.user_email}<br>
+
+      ${grouped.operacje.length ? `
+        <div><b>⚙️ Operacje:</b>
+          <ul>${grouped.operacje.map(a=>`<li>${a}</li>`).join("")}</ul>
+        </div>` : ""}
+
+      ${grouped.serwis.length ? `
+        <div><b>🧹 Serwis:</b>
+          <ul>${grouped.serwis.map(a=>`<li>${a}</li>`).join("")}</ul>
+        </div>` : ""}
+
+      ${parts.length ? `
+        <div><b>🔧 Wymienione części:</b>
+          <ul>${parts.map(p=>`<li>${p}</li>`).join("")}</ul>
+        </div>` : ""}
+
+    </div>`;
+  });
+
+  document.getElementById("interwencjeList").innerHTML = html;
+}
+ function renderInterStats(){
+
+  const from = document.getElementById("statsFrom").value;
+  const to = document.getElementById("statsTo").value;
+
+  let stats = {};
+
+  interwencje.forEach(i => {
+
+    const d = parseUTC(i.start_date);
+    if(!d) return;
+
+    // ✅ filtr dat
+    if(from){
+      const f = new Date(from + "T00:00:00Z");
+      if(d < f) return;
+    }
+
+    if(to){
+      const t = new Date(to + "T23:59:59Z");
+      if(d > t) return;
+    }
+
+    const user = i.user_email || "Brak";
+
+    if(!stats[user]){
+      stats[user] = {
+        total: 0,
+        actions: {},
+        wymiany: {}
+      };
+    }
+
+    stats[user].total++;
+
+    // ✅ ACTIONS (czynności)
+    const actions = Array.isArray(i.actions)
+      ? i.actions
+      : (i.actions || "").split(",").map(s => s.trim());
+
+    // ✅ PARTS (wymienione elementy)
+    let parts = [];
+
+    if(Array.isArray(i.parts)){
+      parts = i.parts;
+    }
+    else if(typeof i.parts === "object" && i.parts !== null){
+      parts = Object.values(i.parts);
+    }
+    else if(typeof i.parts === "string"){
+      try{
+        parts = JSON.parse(i.parts);
+      }catch{
+        parts = [i.parts];
+      }
+    }
+
+    // ✅ LICZENIE CZYNNOŚCI
+    actions.forEach(a => {
+      if(!a) return;
+      stats[user].actions[a] = (stats[user].actions[a] || 0) + 1;
+    });
+
+    // ✅ 🔥 LICZENIE WYMIAN (TYLKO Z PARTS)
+    parts.forEach(p => {
+      if(!p) return;
+      stats[user].wymiany[p] = (stats[user].wymiany[p] || 0) + 1;
+    });
+
+  });
+
+  // ✅ RENDER
+  let html = "";
+
+  Object.keys(stats).forEach(user => {
+
+    const s = stats[user];
+
+    html += `
+      <div class="terminal-box">
+
+        <b>👤 ${user}</b><br>
+        <small>Interwencji: ${s.total}</small><br><br>
+
+        <b>🔧 Wymiany:</b>
+        <ul>
+          ${Object.entries(s.wymiany)
+            .sort((a,b)=>b[1]-a[1])
+            .map(([k,v])=>`<li>${k}: ${v}</li>`)
+            .join("") || "<li>Brak</li>"}
+        </ul>
+
+        <b>⚙️ Wszystkie czynności:</b>
+        <ul>
+          ${Object.entries(s.actions)
+            .sort((a,b)=>b[1]-a[1])
+            .map(([k,v])=>`<li>${k}: ${v}</li>`)
+            .join("") || "<li>Brak</li>"}
+        </ul>
+
+      </div>
+    `;
+  });
+
+  document.getElementById("interwencjeList").innerHTML = html;
+}
+ 
+  /* ===== STATYSTYKI ===== */
+function showStats(){
+
+  
+const nodes = getSelectedNodes();
+
+
+  let totalDevices = 0;
+  let devicesWithAlarms = 0;
+  let totalAlarms = 0;
+
+  Object.keys(allParkomaty).forEach(key => {
+
+    const p = allParkomaty[key];
+    if(!p) return;
+
+    // ✅ filtr strefy
+    if(nodes.length && !nodes.includes(getNode(p))) return;
+
+    // ✅ filtr uprawnień
+
+    totalDevices++;
+
+    const alarms = activeEvents[key]?.length || 0;
+
+    if(alarms > 0){
+      devicesWithAlarms++;
+      totalAlarms += alarms;
+    }
+  });
+
+  alert(
+`📊 STATYSTYKI
+
+🖥️ Urządzenia: ${totalDevices}
+
+⚠️ Parkomaty z awarią: ${devicesWithAlarms}
+
+🔥 Wszystkie awarie: ${totalAlarms}`
+  );
+}
+function updateAlarmCounter(){
+
+  
+const nodes = getSelectedNodes();
+
+
+  let total = 0;
+  let devices = 0;
+
+  Object.keys(activeEvents).forEach(key => {
+
+    const p = allParkomaty[key];
+    if(!p) return;
+
+   if(nodes.length && !nodes.includes(getNode(p))) return;
+
+    devices++;
+    total += activeEvents[key].length;
+  });
+
+  document.getElementById("alarmCounter").innerText =
+    `${devices} / ${total}`;
+}
+  
+function setDateRange(type){
+
+  const from = document.getElementById("statsFrom");
+  const to = document.getElementById("statsTo");
+
+  const now = new Date();
+
+  if(type === "today"){
+    from.value = toLocalDateInput(now);
+    to.value = toLocalDateInput(now);
+  }
+
+  if(type === "week"){
+    const past = new Date();
+    past.setDate(now.getDate() - 7);
+
+    from.value = toLocalDateInput(past);
+    to.value = toLocalDateInput(now);
+  }
+
+  if(type === "month"){
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    from.value = toLocalDateInput(start);
+    to.value = toLocalDateInput(now);
+  }
+
+  if(type === "prevMonth"){
+    const start = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    from.value = toLocalDateInput(start);
+    to.value = toLocalDateInput(end);
+  }
+
+  renderInterStats();
+  renderInterwencje();
+}
+
+  
+/* ===== MASTER ===== */
+function renderAll(){
+  renderMarkers();
+  renderActiveList();
+  renderHistoryList();
+  renderDevicesList();
+  updateAlarmCounter()
+}
+
+/* ===== INIT ===== */
+
+async function init(){
+  await loadUsers();          // ✅ MUSI być FIRST
+  await loadParkomaty();      // ✅ zależy od usera
+  await loadActive();
+  await loadHistory();
+  await loadInterwencje();
+  await loadUserLocations();  // ✅ po users
+  await loadServiceActions();
+  await loadParts();
+  await loadTechnicians();
+
+
+  populateUserFilter();
+  populateActiveEventFilter();
+  populateEventFilter();
+
+  renderAdminPanel();
+  renderAll();
+
+  // ✅ REALTIME (tylko raz)
+  if(!window.realtimeSubscribed){
+
+    // 🔴 ACTIVE EVENTS
+    supabaseClient
+      .channel('active_events_channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'active_events' },
+        () => refreshApp()
+      )
+      .subscribe();
+
+   // ✅ ✅ NOWE – GPS / USER LOCATIONS
+
+supabaseClient
+  .channel('user_locations_channel')
+  .on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'user_locations'
+    },
+    (payload) => {
+
+      const newData = payload.new;
+      if(!newData) return;
+
+      const index = userLocations.findIndex(
+        u => u.user_id === newData.user_id
+      );
+
+      if(index !== -1){
+        // ✅ update istniejącego
+        userLocations[index] = {
+          ...userLocations[index],
+          ...newData
+        };
+      }else{
+        // ✅ nowy user
+        userLocations.push(newData);
+      }
+
+      renderMarkers(); // 🔥 NATYCHMIAST
+    }
+  )
+  .subscribe();
+
+
+
+    window.realtimeSubscribed = true;
+  }
+
+  // ✅ BACKUP (rzadko – nie spamuj)
+  setInterval(refreshApp, 300000); // 5 min zamiast 10
+}
+
+const hash = window.location.hash;
+
+if(hash.includes("type=recovery")){
+  handleRecovery();
+}else{
+  checkAuth();
+}
+
+  
+// zamykanie po wyborze
+
+function applyUserRole(profile){
+
+  if(!profile){
+    console.warn("Brak profilu usera");
+    return;
+  }
+
+  console.log("ROLE:", profile.role);
+
+  const adminBtn = document.getElementById("adminBtn");
+  const userFilter = document.getElementById("interUserFilter");
+
+  if(profile.role === "admin"){
+    // ✅ ADMIN
+    if(adminBtn) adminBtn.style.display = "flex";
+
+    if(userFilter) userFilter.style.display = "block"; // filtr widoczny
+
+  }else{
+    // ✅ SERWIS
+    if(adminBtn) adminBtn.style.display = "none";
+
+    if(userFilter) userFilter.style.display = "none"; // filtr ukryty
+  }
+
+}
+
+
+let isRefreshing = false;
+
+
+async function refreshApp(){
+
+  if(isRefreshing) return;
+  isRefreshing = true;
+
+  const icon = document.getElementById("refreshIcon");
+  if(icon) icon.innerText = "⏳";
+
+  // ✅ 🔐 TU WSTAWIASZ
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+
+  
+if(!sessionData.session){
+
+  // ✅ 🔥 DODAJ TO
+  
+if(window.currentUser){
+    await supabaseClient
+      .from("users")
+      .update({ is_online: false })
+      .eq("id", window.currentUser.id);
+  }
+
+  alert("🔒 Sesja wygasła");
+
+
+  isRefreshing = false;
+  logout();
+  return;
+}
+
+
+  const expiresAt = sessionData.session.expires_at * 1000;
+  if(Date.now() > expiresAt){
+    alert("🔒 Token wygasł");
+    isRefreshing = false;
+    logout();
+    return;
+  }
+
+  // ✅ RESZTA BEZ ZMIAN
+ 
+await loadUsers();
+await loadParkomaty();
+await loadActive();
+await loadHistory();
+await loadInterwencje();
+await loadUserLocations();
+
+  renderAdminPanel();
+  renderAll();
+
+  populateActiveEventFilter();
+  populateEventFilter();
+  populateUserFilter();
+
+  // ✅ sprawdzenie czy admin wylogował usera
+  if(window.currentUser){
+
+    const { data, error } = await supabaseClient
+      .from("users")
+      .select("is_online")
+      .eq("id", window.currentUser.id)
+      .single();
+
+    if(!error && data && data.is_online === false){
+
+      alert("🔒 Sesja zakończona przez administratora");
+
+      isRefreshing = false;
+      logout();
+      return;
+    }
+  }
+
+  if(icon) icon.innerText = "🔄";
+  isRefreshing = false;
+}
+
+
+/* ===== LOAD USERS ===== */
+async function loadUsers(){
+
+  const { data, error } = await supabaseClient
+    .from("users_status").select("*");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  renderUsers(data);
+}
+
+/* ===== LIST ===== */
+function renderUsers(users){
+
+  const html = users.map(u => {
+
+    const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim();
+    const isOnline = u.session_status === "online";
+
+    const statusHtml = `
+      <small>
+        Status: ${u.is_active !== false ? "✅ aktywny" : "⛔ zablokowany"}
+        <br>
+        Online: ${
+          isOnline
+            ? '<span style="color:#16a34a;font-weight:bold;">🟢 ONLINE</span>'
+            : '<span style="color:#6b7280;">⚫ offline</span>'
+        }
+        <br>
+        <span style="color:#9ca3af;">
+          Ostatnio: ${u.last_seen ? formatDatePL(u.last_seen) : "-"}
+          <br>
+        </span>
+      </small>
+      <br><br>
+    `;
+
+    return `
+      <div class="terminal-box">
+
+        <b>${fullName || u.email}</b><br>
+        ${u.email}<br>
+        <small>Rola: ${u.role}</small><br>
+
+        ${statusHtml}
+
+        <button onclick="openEditUser('${u.id}')"
+          style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          ✏️ Edytuj
+        </button>
+
+        <button onclick="forceLogout('${u.id}')"
+          style="background:#f59e0b;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          🔌 Wyloguj
+        </button>
+
+        <button onclick="toggleUser('${u.id}', ${u.is_active !== false})"
+          style="background:#f59e0b;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          ${u.is_active !== false ? "🚫 Zablokuj" : "✅ Odblokuj"}
+        </button>
+
+        <button onclick="resetPassword('${u.email}')"
+          style="background:#7c3aed;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          🔑 Hasło
+        </button>
+
+        <button onclick="deleteUser('${u.id}')"
+          style="background:#dc2626;color:white;border:none;padding:6px 10px;border-radius:6px;">
+          🗑️ Usuń
+        </button>
+
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("usersList").innerHTML = html;
+}
+
+/* ===== EDIT OPEN ===== */
+async function openEditUser(id){
+
+  editingUserId = id;
+
+  const { data } = await supabaseClient
+    .from("users_status")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  document.getElementById("editFirstName").value = data.first_name || "";
+  document.getElementById("editLastName").value = data.last_name || "";
+  document.getElementById("editRole").value = data.role;
+
+  // ✅ MAPA jak przy dodawaniu
+  const map = {};
+
+  Object.values(allParkomaty).forEach(p => {
+
+    const main = p.node_2 || p.node;
+    const sub = p.node;
+
+    if(!main) return;
+
+    if(!map[main]){
+      map[main] = new Set();
+    }
+
+    if(sub){
+      map[main].add(sub);
+    }
+  });
+
+  // ✅ GENEROWANIE IDENTYCZNEGO UI
+  const html = Object.keys(map).sort().map(struct => {
+
+    const nodes = [...map[struct]].sort();
+
+    const structChecked = (data.structures || []).includes(struct);
+
+    return `
+    <div class="struct-box">
+
+      <div class="struct-header" onclick="toggleStruct(this)">
+        <input type="checkbox"
+               class="editStructCheck"
+               value="${struct}"
+               ${structChecked ? "checked" : ""}>
+        <b>${struct}</b>
+        <span class="arrow">▶</span>
+      </div>
+
+      <div class="node-list hidden">
+        ${nodes.map(n => {
+          const checked = (data.nodes || []).includes(n);
+
+          return `
+            <label>
+              <input type="checkbox"
+                     class="editNodeCheck"
+                     data-struct="${struct}"
+                     value="${n}"
+                     ${checked ? "checked" : ""}>
+              <span>${n}</span>
+            </label>
+          `;
+        }).join("")}
+      </div>
+
+    </div>
+    `;
+  }).join("");
+
+  document.getElementById("editStructures").innerHTML = html;
+
+  document.getElementById("editUserModal").style.display="flex";
+}
+
+/* ===== SAVE ===== */
+async function saveUserEdit(){
+
+  const first = document.getElementById("editFirstName").value;
+  const last = document.getElementById("editLastName").value;
+  const role = document.getElementById("editRole").value;
+
+  
+
+const selectedStructs = new Set(
+  [...document.querySelectorAll(".editStructCheck:checked")]
+    .map(el => el.value)
+);
+
+document.querySelectorAll(".editNodeCheck:checked").forEach(el => {
+  selectedStructs.add(el.dataset.struct);
+});
+
+const structures = [...selectedStructs];
+
+const nodes = [
+  ...document.querySelectorAll(".editNodeCheck:checked")
+].map(el => el.value);
+
+
+
+  await supabaseClient
+    .from("users")
+    .update({
+      first_name: first,
+      last_name: last,
+      role: role,
+      structures: structures,
+      nodes: nodes
+    })
+    .eq("id", editingUserId);
+
+  closeEditModal();
+  loadUsers();
+}
+
+function closeEditModal(){
+  document.getElementById("editUserModal").style.display="none";
+}
+
+/* ===== BLOCK ===== */
+async function toggleUser(id, active){
+
+  await supabaseClient
+    .from("users")
+    .update({ is_active: !active })
+    .eq("id", id);
+
+  loadUsers();
+}
+
+/* ===== DELETE ===== */
+async function deleteUser(id){
+
+  if(!confirm("Usunąć użytkownika?")) return;
+
+  await supabaseClient
+    .from("users")
+    .delete()
+    .eq("id", id);
+
+  loadUsers();
+}
+
+/* ===== RESET PASSWORD ===== */
+async function resetPassword(email){
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://parkerm1990.github.io/PZ_Warszawa/"
+  });
+
+  if(error){
+    alert("❌ Błąd");
+  }else{
+    alert("✅ Mail resetu wysłany");
+  }
+}
+  function handleRecovery(){
+
+  const hash = window.location.hash;
+
+  if(hash.includes("type=recovery")){
+
+    document.body.innerHTML = `
+      <div style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+        background:#020617;
+        color:white;
+      ">
+
+        <div style="
+          background:#0b1220;
+          padding:20px;
+          border-radius:12px;
+          width:300px;
+          display:flex;
+          flex-direction:column;
+          gap:10px;
+        ">
+          <h3>🔑 Ustaw nowe hasło</h3>
+
+          <input id="newPass" type="password" placeholder="Nowe hasło">
+
+          <button onclick="saveNewPassword()" style="
+            background:#16a34a;
+            color:white;
+            padding:10px;
+            border:none;
+            border-radius:8px;
+          ">
+            Zmień hasło
+          </button>
+        </div>
+      </div>
+    `;
+  }
+}
+async function saveNewPassword(){
+
+  const password = document.getElementById("newPass").value;
+
+  if(!password){
+    alert("❌ Wpisz hasło");
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.updateUser({
+    password: password
+  });
+
+  if(error){
+    console.error(error);
+    alert("❌ Błąd: " + error.message);
+  }else{
+    alert("✅ Hasło zmienione!");
+
+    window.location.href = "https://parkerm1990.github.io/PZ_Warszawa/";
+  }
+}
+
+function toggleStruct(el){
+
+  const list = el.nextElementSibling;
+  const arrow = el.querySelector(".arrow");
+
+  list.classList.toggle("hidden");
+
+  arrow.textContent = list.classList.contains("hidden") ? "▶" : "▼";
+}
+async function addPart(){
+
+  const name = document.getElementById("newPart").value.trim();
+
+  if(!name){
+    alert("❌ Podaj nazwę");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("parts")
+    .insert([{ name }]);
+
+  if(error){
+    alert("❌ Błąd");
+    return;
+  }
+
+  document.getElementById("newPart").value = "";
+
+  await loadParts();
+  renderParts();
+}
+function renderParts(){
+
+  const box = document.getElementById("partsList");
+
+  box.innerHTML = serviceParts.map(p => `
+    <div class="terminal-box">
+
+      ${p}
+
+      <button onclick="deletePart('${p}')"
+        style="float:right;background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:6px;">
+        🗑️
+      </button>
+
+    </div>
+  `).join("");
+}
+async function deletePart(name){
+
+  if(!confirm("Usunąć część?")) return;
+
+  await supabaseClient
+    .from("parts")
+    .delete()
+    .eq("name", name);
+
+  await loadParts();
+  renderParts();
+}
+  async function addAction(){
+
+  const name = document.getElementById("newAction").value.trim();
+
+  if(!name){
+    alert("❌ Podaj nazwę");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("actions")
+    .insert([{ name }]);
+
+  if(error){
+    alert("❌ Błąd");
+    return;
+  }
+
+  document.getElementById("newAction").value = "";
+
+  await loadServiceActions();
+  renderActions();
+}
+  function renderActions(){
+
+  const box = document.getElementById("actionsList");
+
+  box.innerHTML = serviceActions.map(a => `
+    <div class="terminal-box">
+
+      ${a}
+
+      <button onclick="deleteAction('${a}')"
+        style="float:right;background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:6px;">
+        🗑️
+      </button>
+
+    </div>
+  `).join("");
+}
+  async function deleteAction(name){
+
+  if(!confirm("Usunąć czynność?")) return;
+
+  await supabaseClient
+    .from("actions")
+    .delete()
+    .eq("name", name);
+
+  await loadServiceActions();
+  renderActions();
+}
+  
+setInterval(async () => {
+
+  if(!window.currentUser) return;
+
+  await supabaseClient
+    .from("users")
+    .update({
+      last_seen: new Date().toISOString()
+    })
+    .eq("id", window.currentUser.id);
+
+}, 60000);
+async function forceLogout(userId){
+
+  if(!confirm("Wylogować użytkownika?")) return;
+
+  const { error } = await supabaseClient
+    .from("users")
+    .update({
+      is_online: false
+    })
+    .eq("id", userId);
+
+  if(error){
+    console.error(error);
+    alert("❌ Błąd");
+    return;
+  }
+
+  alert("✅ Użytkownik wylogowany");
+
+  loadUsers();
+}
+  function renderNodeFilter(nodes){
+  const box = document.getElementById("nodeOptions");
+
+  box.innerHTML = nodes.map(n => `
+    <label>
+      <input type="checkbox" value="${n}" onchange="updateNodeSelection()">
+      ${n}
+    </label>
+  `).join('');
+
+  updateNodeSelection();
+}
+  
+function getSelectedNodes(){
+  return [...document.querySelectorAll("#nodeOptions input:checked")]
+    .map(i => i.value);
+}
+function toggleNodeDropdown(){
+  document.getElementById("nodeOptions").classList.toggle("hidden");
+}
+
+// zamknij po kliknięciu poza
+document.addEventListener("click", (e)=>{
+  const el = document.getElementById("nodeMultiSelect");
+  if(!el.contains(e.target)){
+    document.getElementById("nodeOptions").classList.add("hidden");
+  }
+});
+  function updateNodeSelection(){
+
+  const selected = [...document.querySelectorAll("#nodeOptions input:checked")]
+    .map(i => i.value);
+
+  const label = document.getElementById("nodeSelectedText");
+
+  if(selected.length === 0){
+    label.innerText = "Wszystkie strefy";
+  }
+  else if(selected.length <= 2){
+    label.innerText = selected.join(", ");
+  }
+  else{
+    label.innerText = `${selected.length} wybranych`;
+  }
+
+  renderAll(); // 🔥 od razu filtruj
+}
+  let geoStarted = false;
+
+function startGeoTracking(){
+
+  if(!window.currentUser?.location_consent) return;
+  if(!navigator.geolocation) return;
+
+  if(geoStarted) return;   // ✅ zostaje
+  geoStarted = true;
+
+  navigator.geolocation.watchPosition(
+
+    async pos => {
+
+      const { latitude, longitude } = pos.coords;
+
+      
+await supabaseClient
+  .from("user_locations")
+  .upsert({
+    user_id: window.currentUser.id,
+    lat: latitude,
+    lng: longitude,
+    updated_at: new Date().toISOString(),
+  });
+
+
+      console.log("📍 GPS:", latitude, longitude);
+    },
+
+    err => {
+      console.error("GPS ERROR:", err);
+    },
+
+    {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 10000
+    }
+  );
+}
+  async function acceptRodo(){
+
+  const checked = document.getElementById("rodoCheck").checked;
+
+  if(!checked){
+    alert("❌ Musisz zaznaczyć zgodę");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("users")
+    .update({
+      location_consent: true
+    })
+    .eq("id", window.currentUser.id);
+
+  if(error){
+    console.error(error);
+    alert("❌ Błąd zapisu zgody");
+    return;
+  }
+
+  // ✅ zapisz lokalnie (ważne!)
+  window.currentUser.location_consent = true;
+
+  // ✅ zamknij popup
+  document.getElementById("rodoModal").style.display = "none";
+
+  // ✅ start GPS
+  startGeoTracking();
+
+  console.log("✅ RODO zaakceptowane");
+}
+  async function revokeConsent(){
+
+  await supabaseClient
+    .from("users")
+    .update({ location_consent: false })
+    .eq("id", window.currentUser.id);
+
+  await supabaseClient
+    .from("user_locations")
+    .delete()
+    .eq("user_id", window.currentUser.id);
+
+  alert("📍 Zgoda cofnięta");
+
+  location.reload();
+}
+  document.addEventListener("click", (ev) => {
+
+  const btn = ev.target.closest(".fixBtn");
+  if(!btn) return;
+
+  const key = btn.dataset.key;
+  const event = JSON.parse(decodeURIComponent(btn.dataset.event));
+
+  openServiceModal(key, event);
+});
+  function toggleSerialInput(cb, flag){
+
+  const box = cb.parentElement.nextElementSibling;
+
+  if(cb.checked && flag === "tak"){
+    box.style.display = "block";
+  }else{
+    box.style.display = "none";
+  }
+}
+function scanBarcode(btn){
+
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.inset = "0";
+  container.style.background = "black";
+  container.style.zIndex = "99999";
+
+ 
+const video = document.createElement("video");
+
+video.setAttribute("playsinline", true);   // iOS
+video.setAttribute("autoplay", true);      // ✅ start bez kliknięcia
+video.muted = true;                        // ✅ wymagane przez przeglądarki
+
+video.style.width = "100%";
+video.style.height = "100%";
+
+video.style.objectFit = "cover";
+video.style.filter = "contrast(1.3) brightness(1.1)";
+
+
+  const closeBtn = document.createElement("button");
+  closeBtn.innerText = "❌ Zamknij";
+
+  Object.assign(closeBtn.style, {
+    position: "absolute",
+    top: "20px",
+    right: "20px",
+    padding: "10px",
+    background: "red",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    zIndex: "100000"
+  });
+
+  container.appendChild(video);
+  container.appendChild(closeBtn);
+  const frame = document.createElement("div");
+
+Object.assign(frame.style, {
+  position: "absolute",
+  border: "3px solid #22c55e",
+  width: "80%",
+  height: "120px",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  borderRadius: "10px",
+  boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)" // przyciemnienie reszty
+});
+
+container.appendChild(frame);
+  document.body.appendChild(container);
+
+  const codeReader = new ZXing.BrowserBarcodeReader();
+
+  let stopped = false;
+
+ 
+
+
+
+codeReader.decodeFromConstraints({
+  video: {
+    facingMode: { ideal: "environment" },
+
+    width: { ideal: 960 },   // 🔥 mniej = szybszy autofocus
+    height: { ideal: 540 },
+
+    focusMode: "continuous",   // 🔥 KLUCZ
+    advanced: [
+      { focusMode: "continuous" },
+      { zoom: 3.5 }            // 🔥 lekkie przybliżenie
+    ]
+  }
+
+  },
+  video,
+  (result, err) => {
+    if(result){
+
+      console.log("✅ SCAN:", result.text);
+
+      const input = btn.parentElement.querySelector(".serialInput");
+      input.value = result.text;
+
+      const beep = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+      beep.play().catch(()=>{});
+
+      if(navigator.vibrate){
+        navigator.vibrate([100,50,100]);
+      }
+
+      stop();
+    }
+  }
+);
+
+// 🔦 TORCH
+setTimeout(() => {
+  try {
+    const track = video.srcObject?.getVideoTracks()[0];
+    if (!track) return;
+
+    const caps = track.getCapabilities?.();
+    
+    if (caps && caps.torch) {
+      track.applyConstraints({
+        advanced: [{ torch: true }]
+      });
+    }
+  } catch (e) {}
+}, 800);
+
+  
+function stop(){
+  if(stopped) return;
+  stopped = true;
+
+  codeReader.reset();
+  container.remove();
+}
+
+
+  closeBtn.onclick = stop;
+
+  document.addEventListener("keydown", function esc(e){
+    if(e.key === "Escape"){
+      stop();
+      document.removeEventListener("keydown", esc);
+    }
+  });
+}
+
+
+function stopScanner(html5QrCode, container){
+
+  html5QrCode.stop()
+    .catch(()=>{})
+    .finally(() => {
+      try{
+        html5QrCode.clear();
+      }catch(e){}
+
+      if(container) container.remove();
+    });
+}
+function switchInterView(view){
+
+  const statsBtn = document.getElementById("statsBtn");
+  const listBtn = document.getElementById("listBtn");
+
+  // usuń aktywność
+  statsBtn.classList.remove("active");
+  listBtn.classList.remove("active");
+
+  if(view === "stats"){
+    statsBtn.classList.add("active");
+    renderInterStats();
+  }
+
+  if(view === "list"){
+    listBtn.classList.add("active");
+    renderInterwencje();
+  }
+}
+
+  
+</script>
+
+</body>
+</html>
