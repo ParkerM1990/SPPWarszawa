@@ -779,8 +779,72 @@ input[type="date"] {
   }
 }
 
+.serialBox button {
+  margin-top: 6px;
+  width: 100%;
+  padding: 12px;
+  font-size: 18px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 10px;
+}
+
+.serialBox input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid #374151;
+  margin-top: 6px;
+}
+/* 🔥 DUŻE checkboxy */
+#actionsBox input[type="checkbox"],
+#partsBox input[type="checkbox"] {
+  transform: scale(1.5);
+  margin-right: 10px;
+}
+
+/* 🔥 większy klik */
+#actionsBox label,
+#partsBox > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #111827;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+/* hover */
+#actionsBox label:hover,
+#partsBox > div:hover {
+  background: #1f2937;
+}
+.switch-btn {
+  background: #374151;   /* domyślny (jak Lista) */
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  margin: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.switch-btn:hover {
+  background: #4b5563;
+}
+
+.switch-btn.active {
+  background: #1d4ed8;   /* 🔵 aktywny */
+}
+
 
 </style>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
 
 <body>
@@ -1154,27 +1218,18 @@ input[type="date"] {
   ">
     ➕ Dodaj interwencję
   </button>
-  <button onclick="renderInterStats()" style="
-  background:#1d4ed8;
-  color:white;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  margin:10px;
-">
+  <button id="statsBtn"
+  class="switch-btn"
+  onclick="switchInterView('stats')">
   📊 Statystyki
 </button>
 
-<button onclick="renderInterwencje()" style="
-  background:#374151;
-  color:white;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  margin:10px;
-">
+<button id="listBtn"
+  class="switch-btn active"
+  onclick="switchInterView('list')">
   📋 Lista
 </button>
+
 
 <div id="interwencjeList"></div>
 </div>
@@ -1370,7 +1425,7 @@ input[type="date"] {
   padding:16px;
   border-radius:12px;
   width:90%;
-  max-width:400px;
+  max-width:520px;
   display:flex;
   flex-direction:column;
   gap:10px;
@@ -1394,9 +1449,9 @@ input[type="date"] {
 
 <select id="techSelect" style="display:none;"></select>
 
-<div id="actionsBox" style="max-height:150px;overflow:auto;"></div>
+<div id="actionsBox" style="max-height:250px;overflow:auto;"></div>
   <h4>⚙️ Wymienione podzespoły</h4>
-<div id="partsBox" style="max-height:150px;overflow:auto;"></div>
+<div id="partsBox" style="max-height:250px;overflow:auto;"></div>
 
 <button onclick="submitService()" style="
   background:#16a34a;color:white;padding:10px;border:none;border-radius:8px;">
@@ -2179,8 +2234,7 @@ async function loadTechnicians(){
 
   
 serviceParts = data
-  .map(p => p.name)
-  .sort((a, b) => a.localeCompare(b, 'pl'));
+  .sort((a, b) => a.name.localeCompare(b.name, 'pl'));
 
 } 
 async function loadUserLocations(){
@@ -2434,8 +2488,9 @@ function showSection(id){
   if(finalId==="mapSection"){
     setTimeout(()=>map.invalidateSize(),200);
   }
-  if(finalId === "interwencjeSection"){
-  renderInterwencje();
+  
+if(finalId === "interwencjeSection"){
+  switchInterView('list');
 }
 }
 function setActiveNav(btn){
@@ -2465,11 +2520,30 @@ techSelect.innerHTML = technicians
 const partsBox = document.getElementById("partsBox");
 
 partsBox.innerHTML = serviceParts.map(p => `
-  <label style="display:flex;gap:6px;">
-    <input type="checkbox" value="${p}">
-    ${p}
-  </label>
+  <div>
+
+    <label>
+      
+
+<input 
+  type="checkbox"
+  value="${p.name}"
+  data-serial="${p.serial_number}"
+  onchange="toggleSerialInput(this, '${p.serial_number}')"
+>
+
+
+      ${p.name}
+    </label>
+
+    <div class="serialBox" style="display:none;">
+      <input class="serialInput" placeholder="Numer seryjny">
+      <button onclick="scanBarcode(this)">📷</button>
+    </div>
+
+  </div>
 `).join('');
+
 
 
   box.innerHTML = serviceActions.map(a => `
@@ -2518,11 +2592,30 @@ techSelect.innerHTML = technicians
   const partsBox = document.getElementById("partsBox");
 
 partsBox.innerHTML = serviceParts.map(p => `
-  <label style="display:flex;gap:6px;">
-    <input type="checkbox" value="${p}">
-    ${p}
-  </label>
+  <div>
+
+    <label>
+      
+
+<input 
+  type="checkbox"
+  value="${p.name}"
+  data-serial="${p.serial_number}"
+  onchange="toggleSerialInput(this, '${p.serial_number}')"
+>
+
+
+      ${p.name}
+    </label>
+
+    <div class="serialBox" style="display:none;">
+      <input class="serialInput" placeholder="Numer seryjny">
+      <button onclick="scanBarcode(this)">📷</button>
+    </div>
+
+  </div>
 `).join('');
+
 
   box.innerHTML = serviceActions.map(a => `
     <label style="display:flex;gap:6px;">
@@ -2573,8 +2666,35 @@ async function submitService(){
   const actions = [...document.querySelectorAll("#actionsBox input:checked")]
     .map(el => el.value);
 
-  const parts = [...document.querySelectorAll("#partsBox input:checked")]
-    .map(el => el.value);
+const parts = [];
+const partsWithSerial = [];
+
+document
+  .querySelectorAll("#partsBox input[type=checkbox]:checked")
+  .forEach(cb => {
+
+    const partName = cb.value;
+
+    const serial = cb
+      .parentElement
+      .nextElementSibling
+      ?.querySelector(".serialInput")
+      ?.value || null;
+// ✅ WALIDACJA NUMERU SERYJNEGO
+    if(cb.checked && cb.dataset.serial === "tak" && !serial){
+      alert(`❌ Podaj numer seryjny dla: ${partName}`);
+      throw new Error("Brak numeru seryjnego");
+    }
+    // do starego systemu
+    parts.push(partName);
+
+    // do nowej tabeli
+    partsWithSerial.push({
+      part_name: partName,
+      serial_number: serial
+    });
+  });
+  
 
   if(!user){
     alert("❌ Wybierz pracownika");
@@ -2605,22 +2725,36 @@ async function submitService(){
   try{
 
     // ✅ ZAPIS INTERWENCJI (KLUCZOWE)
-    const { error } = await supabaseClient
-      .from("interwencje2")
-      .insert([{
-        device_id: p.id,
-        structure: p.structure,
-        location: p.location,
-        event_name: event.name,
-        start_date: d ? d.toISOString() : now,
-        end_date: now,
-        user_id: window.currentUser.id,
-        user_email: user,
-        actions: actions,
-        parts: parts,
-        hardware: event.hardware,
-        handled_spike: currentService?.event?.code === "INFO_SPAM"
-      }]);
+    const { data: interData, error } = await supabaseClient
+  .from("interwencje2")
+  .insert([{
+    device_id: p.id,
+    structure: p.structure,
+    location: p.location,
+    event_name: event.name,
+    start_date: d ? d.toISOString() : now,
+    end_date: now,
+    user_id: window.currentUser.id,
+    user_email: user,
+    actions: actions,
+    parts: parts,
+    hardware: event.hardware
+  }])
+  .select()
+  .single();
+if(partsWithSerial.length){
+
+  const rows = partsWithSerial.map(pw => ({
+    interwencja_id: interData.id,
+    device_id: p.id,
+    part_name: pw.part_name,
+    serial_number: pw.serial_number
+  }));
+
+  await supabaseClient
+    .from("interwencje_parts")
+    .insert(rows);
+}
 
     if(error){
       console.error(error);
@@ -4493,7 +4627,160 @@ await supabaseClient
 
   openServiceModal(key, event);
 });
+  function toggleSerialInput(cb, flag){
 
+  const box = cb.parentElement.nextElementSibling;
+
+  if(cb.checked && flag === "tak"){
+    box.style.display = "block";
+  }else{
+    box.style.display = "none";
+  }
+}
+function scanBarcode(btn){
+
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.inset = "0";
+  container.style.background = "black";
+  container.style.zIndex = "99999";
+
+ 
+const video = document.createElement("video");
+
+video.setAttribute("playsinline", true);   // iOS
+video.setAttribute("autoplay", true);      // ✅ start bez kliknięcia
+video.muted = true;                        // ✅ wymagane przez przeglądarki
+
+video.style.width = "100%";
+video.style.height = "100%";
+
+
+  const closeBtn = document.createElement("button");
+  closeBtn.innerText = "❌ Zamknij";
+
+  Object.assign(closeBtn.style, {
+    position: "absolute",
+    top: "20px",
+    right: "20px",
+    padding: "10px",
+    background: "red",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    zIndex: "100000"
+  });
+
+  container.appendChild(video);
+  container.appendChild(closeBtn);
+  document.body.appendChild(container);
+
+  const codeReader = new ZXing.BrowserMultiFormatReader();
+
+  let stopped = false;
+
+ 
+
+
+codeReader.decodeFromConstraints(
+  {
+    video: {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 }
+    }
+  },
+  video,
+  (result, err) => {
+    if(result){
+
+      console.log("✅ SCAN:", result.text);
+
+      const input = btn.parentElement.querySelector(".serialInput");
+      input.value = result.text;
+
+      const beep = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+      beep.play().catch(()=>{});
+
+      if(navigator.vibrate){
+        navigator.vibrate([100,50,100]);
+      }
+
+      stop();
+    }
+  }
+);
+
+// 🔦 TORCH
+setTimeout(() => {
+  try {
+    const track = video.srcObject?.getVideoTracks()[0];
+    if (!track) return;
+
+    const caps = track.getCapabilities?.();
+    
+    if (caps && caps.torch) {
+      track.applyConstraints({
+        advanced: [{ torch: true }]
+      });
+    }
+  } catch (e) {}
+}, 800);
+
+  
+function stop(){
+  if(stopped) return;
+  stopped = true;
+
+  codeReader.reset();
+  container.remove();
+}
+
+
+  closeBtn.onclick = stop;
+
+  document.addEventListener("keydown", function esc(e){
+    if(e.key === "Escape"){
+      stop();
+      document.removeEventListener("keydown", esc);
+    }
+  });
+}
+
+
+function stopScanner(html5QrCode, container){
+
+  html5QrCode.stop()
+    .catch(()=>{})
+    .finally(() => {
+      try{
+        html5QrCode.clear();
+      }catch(e){}
+
+      if(container) container.remove();
+    });
+}
+function switchInterView(view){
+
+  const statsBtn = document.getElementById("statsBtn");
+  const listBtn = document.getElementById("listBtn");
+
+  // usuń aktywność
+  statsBtn.classList.remove("active");
+  listBtn.classList.remove("active");
+
+  if(view === "stats"){
+    statsBtn.classList.add("active");
+    renderInterStats();
+  }
+
+  if(view === "list"){
+    listBtn.classList.add("active");
+    renderInterwencje();
+  }
+}
+
+  
 </script>
 
 </body>
