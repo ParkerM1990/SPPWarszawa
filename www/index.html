@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
-<link rel="manifest" href="/SPPWarszawa/manifest.json">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#020617">
 
 <title>Monitoring Parkomatów</title>
@@ -1793,7 +1793,7 @@ document.getElementById("rodoCheck").checked = false;
 }
 
 async function logout(){
-
+stopGeoTracking();
   if(window.currentUser){
     await supabaseClient
       .from("users")
@@ -2123,6 +2123,7 @@ let userLayer = L.layerGroup().addTo(map);   // ✅ Uzytkownicy
 let allParkomaty={};
 let userLocations = [];
 let userMarkers = {};
+  let geoWatchId = null;
 let activeEvents={};
 let historyEvents=[];
 const RED_CODES = ["16384","16385","16386","16900"];
@@ -2542,7 +2543,7 @@ partsBox.innerHTML = serviceParts.map(p => `
 
     <div class="serialBox" style="display:none;">
       <input class="serialInput" placeholder="Numer seryjny">
-      <button onclick="scanBarcode(this)">📷</button>
+      <button onclick="scanBarcodeSmart(this)">📷</button>
     </div>
 
   </div>
@@ -4531,32 +4532,28 @@ document.addEventListener("click", (e)=>{
 
   renderAll(); // 🔥 od razu filtruj
 }
-  let geoStarted = false;
 
 function startGeoTracking(){
 
   if(!window.currentUser?.location_consent) return;
   if(!navigator.geolocation) return;
 
-  if(geoStarted) return;   // ✅ zostaje
-  geoStarted = true;
+  if(geoWatchId !== null) return; // ✅ już działa
 
-  navigator.geolocation.watchPosition(
+  geoWatchId = navigator.geolocation.watchPosition(
 
     async pos => {
-
+if(!window.currentUser?.id) return;
       const { latitude, longitude } = pos.coords;
 
-      
-await supabaseClient
-  .from("user_locations")
-  .upsert({
-    user_id: window.currentUser.id,
-    lat: latitude,
-    lng: longitude,
-    updated_at: new Date().toISOString(),
-  });
-
+      await supabaseClient
+        .from("user_locations")
+        .upsert({
+          user_id: window.currentUser.id,
+          lat: latitude,
+          lng: longitude,
+          updated_at: new Date().toISOString(),
+        });
 
       console.log("📍 GPS:", latitude, longitude);
     },
@@ -4606,7 +4603,7 @@ await supabaseClient
   console.log("✅ RODO zaakceptowane");
 }
   async function revokeConsent(){
-
+stopGeoTracking();
   await supabaseClient
     .from("users")
     .update({ location_consent: false })
@@ -4777,6 +4774,14 @@ function stop(){
   });
 }
 
+function scanBarcodeSmart(btn){
+
+  if(window.Capacitor){
+    scanBarcodeNative(btn);  // ✅ APK
+  }else{
+    scanBarcode(btn);        // ✅ przeglądarka
+  }
+}
 
 function stopScanner(html5QrCode, container){
 
@@ -4809,8 +4814,29 @@ function switchInterView(view){
     renderInterwencje();
   }
 }
+async function scanBarcodeNative(btn){
 
+  const { BarcodeScanner } = Capacitor.Plugins;
+
+  const result = await BarcodeScanner.scan();
+
+  if(result.barcodes.length > 0){
+
+    const code = result.barcodes[0].rawValue;
+
+    const input = btn.parentElement.querySelector(".serialInput");
+    input.value = code;
+  }
+}
   
+function stopGeoTracking(){
+  if(geoWatchId !== null){
+    navigator.geolocation.clearWatch(geoWatchId);
+    geoWatchId = null;
+    console.log("🛑 GPS STOPPED");
+  }
+}
+
 </script>
 
 </body>
