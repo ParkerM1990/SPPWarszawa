@@ -4682,13 +4682,21 @@ video.style.height = "100%";
  
 
 
-codeReader.decodeFromConstraints(
-  {
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 1920 },
-      height: { ideal: 1080 }
-    }
+
+decodeFromConstraints({
+  video: {
+    facingMode: { ideal: "environment" },
+
+    width: { ideal: 1280 },   // 🔥 mniej = szybszy autofocus
+    height: { ideal: 720 },
+
+    focusMode: "continuous",   // 🔥 KLUCZ
+    advanced: [
+      { focusMode: "continuous" },
+      { zoom: 2.0 }            // 🔥 lekkie przybliżenie
+    ]
+  }
+
   },
   video,
   (result, err) => {
