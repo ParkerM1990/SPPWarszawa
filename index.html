@@ -4675,7 +4675,7 @@ video.style.height = "100%";
   container.appendChild(closeBtn);
   document.body.appendChild(container);
 
-  const codeReader = new ZXing.BrowserMultiFormatReader();
+  const codeReader = new ZXing.BrowserBarcodeReader();
 
   let stopped = false;
 
@@ -4687,13 +4687,13 @@ codeReader.decodeFromConstraints({
   video: {
     facingMode: { ideal: "environment" },
 
-    width: { ideal: 1280 },   // 🔥 mniej = szybszy autofocus
-    height: { ideal: 720 },
+    width: { ideal: 960 },   // 🔥 mniej = szybszy autofocus
+    height: { ideal: 540 },
 
     focusMode: "continuous",   // 🔥 KLUCZ
     advanced: [
       { focusMode: "continuous" },
-      { zoom: 2.0 }            // 🔥 lekkie przybliżenie
+      { zoom: 2.5 }            // 🔥 lekkie przybliżenie
     ]
   }
 
