@@ -44,7 +44,6 @@ jobs:
             }
           }' > capacitor.config.json
 
-      # ✅ POPRAWIONE WCIĘCIA
       - name: Prepare www folder
         run: |
           rm -rf www
@@ -61,14 +60,16 @@ jobs:
       - name: Copy project
         run: npx cap copy
 
-      - name: Clean Gradle cache
-        run: rm -rf ~/.gradle/caches/
+      # ✅ KLUCZ: full clean (naprawia Twój błąd JAR)
+      - name: Clean Gradle
+        run: rm -rf ~/.gradle
 
+      # ✅ build bez cache
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace -Dorg.gradle.caching=false
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
