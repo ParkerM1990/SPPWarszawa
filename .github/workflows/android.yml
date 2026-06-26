@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 18
 
-      # ✅ FIX: Java pod Android build
+      # ✅ FIX: Java pod Android
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -33,18 +33,25 @@ jobs:
       - name: Install Capacitor
         run: npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      # ✅ FIX: webDir zmienione + poprawiony zapis >
+      # ✅ FIX: poprawny webDir (musi być www)
       - name: Create capacitor config
         run: |
           echo '{
             "appId": "com.sppwarszawa.app",
             "appName": "SPP Warszawa",
-            "webDir": ".",
+            "webDir": "www",
             "server": {
               "url": "https://parkerm1990.github.io/SPPWarszawa/",
               "cleartext": true
             }
           }' > capacitor.config.json
+
+      # ✅ FIX: tworzymy www żeby Capacitor nie crashował
+      - name: Prepare www folder
+        run: |
+          mkdir www
+          cp index.html www/
+          cp manifest.json www/ || true
 
       - name: Init Capacitor
         run: npx cap init
@@ -52,12 +59,12 @@ jobs:
       - name: Add Android
         run: npx cap add android
 
-      # ✅ FIX: brakujący krok
+      # ✅ FIX: wymagany krok
       - name: Copy project
         run: npx cap copy
 
       # ✅ FIX: usuwa błędy Gradle cache
-      - name: Clean Gradle
+      - name: Clean Gradle cache
         run: rm -rf ~/.gradle/caches/
 
       - name: Build APK
