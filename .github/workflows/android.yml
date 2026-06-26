@@ -1,0 +1,54 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Capacitor
+        run: npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Create capacitor config
+        run: |
+          echo '{
+            "appId": "com.sppwarszawa.app",
+            "appName": "SPP Warszawa",
+            "webDir": "www",
+            "server": {
+              "url": "https://parkerm1990.github.io/SPPWarszawa/",
+              "cleartext": true
+            }
+          }' > capacitor.config.json
+
+      - name: Init Capacitor
+        run: npx cap init
+
+      - name: Add Android
+        run: npx cap add android
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SPPWarszawa-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
