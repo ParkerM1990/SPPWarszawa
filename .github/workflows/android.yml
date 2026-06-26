@@ -47,11 +47,12 @@ jobs:
           }' > capacitor.config.json
 
       # ✅ FIX: tworzymy www żeby Capacitor nie crashował
-      - name: Prepare www folder
-        run: |
-          mkdir www
-          cp index.html www/
-          cp manifest.json www/ || true
+      - name: Prepare www folder      
+    run: |
+    rm -rf www
+    mkdir www
+    cp index.html www/
+    cp manifest.json www/ || true
 
       - name: Init Capacitor
         run: npx cap init
