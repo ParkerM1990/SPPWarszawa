@@ -4,8 +4,10 @@
   "description": "Aplikacja do monitoringu i obsługi parkomatów",
   "start_url": ".",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#020617",
   "theme_color": "#020617",
+  "id": "/",
   "icons": [
     {
       "src": "web-app-manifest-192x192.png",
