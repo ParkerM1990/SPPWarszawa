@@ -1038,6 +1038,13 @@ input[type="date"] {
   </select>
 </div>
 
+<div class="filter-item">
+  <span>⚠️</span>
+  <select id="mapEventFilter" onchange="renderAll()">
+    <option value="">Wszystkie awarie</option>
+  </select>
+</div>
+
   </div>
 
   <div id="map"></div>
@@ -2877,33 +2884,45 @@ if(partsWithSerial.length){
 
 /* ===== MAP + AUTO CENTER ===== */
 function renderMarkers(){
-markerLayer.clearLayers();
+
+  markerLayer.clearLayers();
+
   const nodes = getSelectedNodes();
+  const eventFilter = document.getElementById("mapEventFilter")?.value;
 
   let points = [];
 
-  // ✅ PARKOMATY
   Object.keys(activeEvents).forEach(key => {
 
     const p = allParkomaty[key];
     if(!p) return;
+
     if(nodes.length && !nodes.includes(getNode(p))) return;
 
+    // ✅ filtr typu awarii
+    let events = activeEvents[key];
+
+    if(eventFilter){
+      events = events.filter(e => e.name === eventFilter);
+    }
+
+    if(!events || events.length === 0) return;
+
+    // ✅ POPUP
     let popup = `<b>Parkomat ${p.id}</b><br>${p.location}<br><br>`;
 
-    activeEvents[key].forEach(e => {
-      
-const isInfo = e.count > 1;
+    events.forEach(e => {
 
-popup += `
-  • <b>${e.hardware || "Inne"}</b> – ${
-    isInfo
-      ? `ℹ️${e.name} (${e.count})`
-      : e.name
-  }<br>
-  <small>${formatDatePL(e.date)}</small><br>
-`;
+      const isInfo = e.count > 1;
 
+      popup += `
+        • <b>${e.hardware || "Inne"}</b> – ${
+          isInfo
+            ? `ℹ️${e.name} (${e.count})`
+            : e.name
+        }<br>
+        <small>${formatDatePL(e.date)}</small><br>
+      `;
     });
 
     popup += `
@@ -2915,8 +2934,8 @@ popup += `
       </a>
     `;
 
-    // ✅ sprawdzanie krytycznych kodów
-    const codes = activeEvents[key].map(e => (e.code ? String(e.code).trim() : ""));
+    // ✅ kolor markerów
+    const codes = events.map(e => (e.code ? String(e.code).trim() : ""));
     const hasCritical = codes.some(code => RED_CODES.includes(code));
 
     const icon = L.divIcon({
@@ -2936,7 +2955,7 @@ popup += `
           color:white;
           font-weight:bold;
         ">
-          ${activeEvents[key].reduce((sum, e) => sum + (e.count || 1), 0)}
+          ${events.reduce((sum, e) => sum + (e.count || 1), 0)}
         </div>
       `
     });
@@ -2945,21 +2964,17 @@ popup += `
       .bindPopup(popup)
       .addTo(markerLayer);
 
-    // ✅ FIX (tu musi być p)
     points.push([p.lat, p.lng]);
   });
 
-  // ✅ 👤 LOKALIZACJE USERÓW
+  // ✅ USERZY (bez zmian)
   userLocations.forEach(u => {
 
     if(window.currentUser?.role !== "admin"){
       if(u.user_id !== window.currentUser?.id) return;
     }
 
-    if(!u.lat || !u.lng){
-      console.log("❌ brak GPS:", u);
-      return;
-    }
+    if(!u.lat || !u.lng) return;
 
     const name = `${u.first_name || ""} ${u.last_name || ""}`;
 
@@ -2972,41 +2987,22 @@ popup += `
           border-radius:50%;
           background:#3b82f6;
           border:2px solid white;
-          box-shadow:0 0 6px black;
         "></div>
       `
     });
 
     if(!userMarkers[u.user_id]){
+      userMarkers[u.user_id] = L.marker([u.lat, u.lng], { icon })
+        .bindPopup(`<b>👤 ${name}</b>`)
+        .addTo(userLayer);
+    }else{
+      userMarkers[u.user_id].setLatLng([u.lat, u.lng]);
+    }
 
-  userMarkers[u.user_id] = L.marker([u.lat, u.lng], { icon })
-    .bindPopup(`
-      <b>👤 ${name.trim() || "User"}</b><br>
-    `)
-    .addTo(userLayer);
-
-}else{
-
-  userMarkers[u.user_id].setLatLng([u.lat, u.lng]); // ✅ przesunięcie zamiast resetu
-}
-
-    // ✅ FIX (tu musi być u, NIE p)
     points.push([u.lat, u.lng]);
   });
-  
-Object.keys(userMarkers).forEach(id => {
 
-  const exists = userLocations.find(u => u.user_id === id);
-
-  if(!exists){
-    userLayer.removeLayer(userMarkers[id]);
-    delete userMarkers[id];
-  }
-
-});
-
-
-  // ✅ CENTROWANIE MAPY
+  // ✅ centrowanie
   if(points.length === 0){
     map.setView([52.2297,21.0122],6);
   }
@@ -3015,11 +3011,12 @@ Object.keys(userMarkers).forEach(id => {
   }
   else{
     map.fitBounds(L.latLngBounds(points), {
-      padding: [50, 50],
-      maxZoom: 16
+      padding:[50,50],
+      maxZoom:16
     });
   }
 }
+
 
 /* ===== FILTR AWARII (RESTORED) ===== */
 function populateActiveEventFilter(){
@@ -3843,6 +3840,7 @@ async function init(){
 
   populateUserFilter();
   populateActiveEventFilter();
+  populateMapEventFilter();
   populateEventFilter();
 
   renderAdminPanel();
@@ -4001,6 +3999,7 @@ await loadUserLocations();
   renderAll();
 
   populateActiveEventFilter();
+  populateMapEventFilter();
   populateEventFilter();
   populateUserFilter();
 
@@ -4834,7 +4833,36 @@ function stopGeoTracking(){
     console.log("🛑 GPS STOPPED");
   }
 }
+function populateMapEventFilter(){
 
+  const set = new Set();
+
+  Object.values(activeEvents).forEach(arr => {
+    arr.forEach(e => {
+      if(e.name){
+        set.add(e.name);
+      }
+    });
+  });
+
+  const select = document.getElementById("mapEventFilter");
+
+  if(!select) return;
+
+  const current = select.value;
+
+  select.innerHTML =
+    `<option value="">Wszystkie awarie</option>` +
+    [...set]
+      .sort()
+      .map(e => `<option value="${e}">${e}</option>`)
+      .join('');
+
+  // ✅ zachowaj wybrany filtr jeśli istnieje
+  if([...select.options].some(o => o.value === current)){
+    select.value = current;
+  }
+}
 </script>
 
 </body>
