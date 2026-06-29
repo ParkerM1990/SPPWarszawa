@@ -3881,9 +3881,23 @@ supabaseClient
     },
     (payload) => {
 
-      const newData = payload.new;
-      if(!newData) return;
+      if(payload.eventType === "DELETE"){
 
+  const id = payload.old.user_id;
+
+  userLocations = userLocations.filter(
+    u => u.user_id !== id
+  );
+
+  if(userMarkers[id]){
+    userLayer.removeLayer(userMarkers[id]);
+    delete userMarkers[id];
+  }
+
+  renderMarkers();
+  return;
+}
+const newData = payload.new;
       const index = userLocations.findIndex(
         u => u.user_id === newData.user_id
       );
@@ -3904,13 +3918,67 @@ supabaseClient
   )
   .subscribe();
 
+ // 🔧 INTERWENCJE
+  supabaseClient
+    .channel('interwencje_channel')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'interwencje2'
+      },
+      async (payload) => {
+        console.log("🔧 REALTIME INTERWENCJA", payload);
+
+        await loadInterwencje();
+
+        renderInterwencje();
+        renderInterStats();
+      }
+    )
+    .subscribe((status) => {
+      console.log("INTERWENCJE STATUS:", status);
+    });
+
+
+// 📜 HISTORY EVENTS
+supabaseClient
+  .channel('history_events_channel')
+  .on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'history_events'
+    },
+    async (payload) => {
+
+      console.log("📜 REALTIME HISTORY", payload);
+
+      await loadHistory();
+
+      populateEventFilter();
+      renderHistoryList();
+    }
+  )
+  .subscribe((status) => {
+    console.log("HISTORY STATUS:", status);
+  });
 
 
     window.realtimeSubscribed = true;
   }
 
   // ✅ BACKUP (rzadko – nie spamuj)
-  setInterval(refreshApp, 300000); // 5 min zamiast 10
+  
+if(!window.refreshTimer){
+  window.refreshTimer = setInterval(
+    refreshApp,
+    300000
+  );
+}
+
 }
 
 const hash = window.location.hash;
