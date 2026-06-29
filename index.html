@@ -2994,8 +2994,8 @@ Object.keys(userMarkers).forEach(id => {
 
    const name = `${u.first_name || ""} ${u.last_name || ""}`;
 
-const lastSeen = u.last_seen
-  ? formatDatePL(u.last_seen)
+const lastSeen = u.updated_at
+  ? formatDatePL(u.updated_at)
   : "brak danych";
 
 const icon = L.divIcon({
