@@ -3851,13 +3851,22 @@ async function init(){
 
     // 🔴 ACTIVE EVENTS
     supabaseClient
-      .channel('active_events_channel')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'active_events' },
-        () => refreshApp()
-      )
-      .subscribe();
+  .channel('active_events_channel')
+  .on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'active_events'
+    },
+    (payload) => {
+      console.log("🔥 REALTIME ACTIVE", payload);
+      refreshApp();
+    }
+  )
+  .subscribe((status) => {
+      console.log("ACTIVE STATUS:", status);
+  });
 
    // ✅ ✅ NOWE – GPS / USER LOCATIONS
 
