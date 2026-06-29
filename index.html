@@ -2967,6 +2967,22 @@ function renderMarkers(){
     points.push([p.lat, p.lng]);
   });
 
+// ✅ usuń nieaktualne markery
+Object.keys(userMarkers).forEach(id => {
+
+  const exists = userLocations.some(
+    u => String(u.user_id) === String(id)
+  );
+
+  if(!exists){
+
+    userLayer.removeLayer(userMarkers[id]);
+    delete userMarkers[id];
+
+    console.log("🗑️ Usunięto marker użytkownika:", id);
+  }
+});
+
   // ✅ USERZY (bez zmian)
   userLocations.forEach(u => {
 
