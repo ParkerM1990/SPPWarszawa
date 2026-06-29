@@ -2992,28 +2992,49 @@ Object.keys(userMarkers).forEach(id => {
 
     if(!u.lat || !u.lng) return;
 
-    const name = `${u.first_name || ""} ${u.last_name || ""}`;
+   const name = `${u.first_name || ""} ${u.last_name || ""}`;
 
-    const icon = L.divIcon({
-      className: '',
-      html: `
-        <div style="
-          width:18px;
-          height:18px;
-          border-radius:50%;
-          background:#3b82f6;
-          border:2px solid white;
-        "></div>
-      `
-    });
+const lastSeen = u.last_seen
+  ? formatDatePL(u.last_seen)
+  : "brak danych";
 
-    if(!userMarkers[u.user_id]){
-      userMarkers[u.user_id] = L.marker([u.lat, u.lng], { icon })
-        .bindPopup(`<b>👤 ${name}</b>`)
-        .addTo(userLayer);
-    }else{
-      userMarkers[u.user_id].setLatLng([u.lat, u.lng]);
-    }
+const icon = L.divIcon({
+  className: '',
+  html: `
+    <div style="
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      background:#3b82f6;
+      border:2px solid white;
+    "></div>
+  `
+});
+
+const popupHtml = `
+  <b>👤 ${name}</b><br>
+  <small>
+    📍 Ostatnia aktywność:<br>
+    ${lastSeen}
+  </small>
+`;
+
+if(!userMarkers[u.user_id]){
+
+  userMarkers[u.user_id] = L.marker(
+    [u.lat, u.lng],
+    { icon }
+  )
+  .bindPopup(popupHtml)
+  .addTo(userLayer);
+
+}else{
+
+  userMarkers[u.user_id]
+    .setLatLng([u.lat, u.lng])
+    .setPopupContent(popupHtml);
+
+}
 
     points.push([u.lat, u.lng]);
   });
