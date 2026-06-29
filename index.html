@@ -3027,12 +3027,16 @@ const popupHtml = `
 
 if(!userMarkers[u.user_id]){
 
-  userMarkers[u.user_id] = L.marker(
-    [u.lat, u.lng],
-    { icon }
-  )
-  .bindPopup(popupHtml)
-  .addTo(userLayer);
+  
+userMarkers[u.user_id] = L.marker(
+  [u.lat, u.lng],
+  { icon }
+)
+.bindPopup(popupHtml, {
+  className: "user-popup"
+})
+.addTo(userLayer);
+
 
 }else{
 
