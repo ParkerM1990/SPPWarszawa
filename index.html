@@ -1393,16 +1393,21 @@ input[type="date"] {
     <div id="adminConfig" style="display:none;">
 
   <div class="admin-card">
-    <h3>🔧 Części</h3>
+  <h3>🔧 Części</h3>
 
-    <input id="newPart" placeholder="Nowa część">
+  <input id="newPart" placeholder="Nazwa części">
 
-    <button onclick="addPart()" style="margin:5px 0;">
-      ➕ Dodaj
-    </button>
+  <select id="newPartSerial">
+    <option value="nie">Nie wymaga numeru seryjnego</option>
+    <option value="tak">Wymaga numeru seryjnego</option>
+  </select>
 
-    <div id="partsList"></div>
-  </div>
+  <button onclick="addPart()" style="margin:5px 0;">
+    ➕ Dodaj
+  </button>
+
+  <div id="partsList"></div>
+</div>
 
   <div class="admin-card">
     <h3>⚙️ Czynności</h3>
@@ -4507,6 +4512,8 @@ function toggleStruct(el){
 async function addPart(){
 
   const name = document.getElementById("newPart").value.trim();
+  const serial_number =
+    document.getElementById("newPartSerial").value;
 
   if(!name){
     alert("❌ Podaj nazwę");
@@ -4515,14 +4522,19 @@ async function addPart(){
 
   const { error } = await supabaseClient
     .from("parts")
-    .insert([{ name }]);
+    .insert([{
+      name,
+      serial_number
+    }]);
 
   if(error){
+    console.error(error);
     alert("❌ Błąd");
     return;
   }
 
   document.getElementById("newPart").value = "";
+  document.getElementById("newPartSerial").value = "nie";
 
   await loadParts();
   renderParts();
@@ -4534,9 +4546,11 @@ function renderParts(){
   box.innerHTML = serviceParts.map(p => `
     <div class="terminal-box">
 
-      ${p}
+      <b>${p.name}</b><br>
+      Numer seryjny:
+      ${p.serial_number === "tak" ? "✅ Tak" : "❌ Nie"}
 
-      <button onclick="deletePart('${p}')"
+      <button onclick="deletePart('${p.name}')"
         style="float:right;background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:6px;">
         🗑️
       </button>
