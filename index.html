@@ -2436,31 +2436,67 @@ activeEvents[key].push({
 /* ===== LOAD HISTORY ===== */
 async function loadHistory(){
 
-  const { data, error } = await supabaseClient
-    .from("history_events")
-    .select("*");
+  let allData = [];
+  let from = 0;
+  const limit = 1000;
 
-  if(error){
-    console.error(error);
-    return;
+  while(true){
+
+    const { data, error } = await supabaseClient
+      .from("history_events")
+      .select("*")
+      .range(from, from + limit - 1);
+
+    if(error){
+      console.error(error);
+      return;
+    }
+
+    allData = allData.concat(data);
+
+    if(data.length < limit){
+      break;
+    }
+
+    from += limit;
   }
 
-  historyEvents = data;
+  historyEvents = allData;
+
+  console.log("ZAŁADOWANO HISTORIĘ:", historyEvents.length);
 }
   /* ===== LOAD Interwencje ===== */
 async function loadInterwencje(){
 
-  const { data, error } = await supabaseClient
-    .from("interwencje2")
-    .select("*")
-    .order("start_date", { ascending: false });
+  let allData = [];
+  let from = 0;
+  const limit = 1000;
 
-  if(error){
-    console.error("BŁĄD INTERWENCJI:", error);
-    return;
+  while(true){
+
+    const { data, error } = await supabaseClient
+      .from("interwencje2")
+      .select("*")
+      .order("start_date", { ascending: false })
+      .range(from, from + limit - 1);
+
+    if(error){
+      console.error("BŁĄD INTERWENCJI:", error);
+      return;
+    }
+
+    allData = allData.concat(data);
+
+    if(data.length < limit){
+      break;
+    }
+
+    from += limit;
   }
 
-  interwencje = data;
+  interwencje = allData;
+
+  console.log("✅ ZAŁADOWANO INTERWENCJE:", interwencje.length);
 }
   
 /* ===== UI ===== */
