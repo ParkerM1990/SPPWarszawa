@@ -2694,7 +2694,12 @@ partsBox.innerHTML = serviceParts.map(p => `
 
   
 box.innerHTML = serviceActions.map(a => `
-  <label class="actionRow">
+  <label style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    width:100%;
+  ">
     <span>${a}</span>
     <input type="checkbox" value="${a}">
   </label>
@@ -2766,11 +2771,16 @@ partsBox.innerHTML = serviceParts.map(p => `
 
 
   box.innerHTML = serviceActions.map(a => `
-    <label style="display:flex;gap:6px;">
-      <input type="checkbox" value="${a}">
-      ${a}
-    </label>
-  `).join('');
+  <label style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    width:100%;
+  ">
+    <span>${a}</span>
+    <input type="checkbox" value="${a}">
+  </label>
+`).join('');
 populateGeneralCategories();
 
 // ✅ wyczyść pola interwencji ogólnej
