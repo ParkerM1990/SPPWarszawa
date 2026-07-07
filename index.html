@@ -2770,6 +2770,11 @@ partsBox.innerHTML = serviceParts.map(p => `
   `).join('');
 populateGeneralCategories();
 
+// ✅ wyczyść pola interwencji ogólnej
+  document.getElementById("deviceSearchInput").value = "";
+document.getElementById("generalNote").value = "";
+document.getElementById("generalQuantity").value = "";
+
 document.getElementById("interventionType").value =
   "parkomat";
 
