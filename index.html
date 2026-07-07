@@ -875,6 +875,42 @@ input[type="date"] {
   margin:0 0 10px 0;
   color:#cbd5e1;
 }
+  #actionsBox label,
+#partsBox label{
+  display:flex !important;
+  justify-content:space-between !important;
+  align-items:center !important;
+  width:100% !important;
+  gap:10px;
+  padding:4px 0;
+}
+
+#actionsBox label span,
+#partsBox label span{
+  flex:1;
+}
+
+#actionsBox input[type=checkbox],
+#partsBox input[type=checkbox]{
+  margin:0 !important;
+  flex-shrink:0;
+}
+
+#actionsBox,
+#partsBox{
+  overflow-x:hidden !important;
+}
+  #serviceModal *{
+  max-width:100%;
+}
+
+.serialBox{
+  overflow:hidden;
+}
+
+.serialBox input{
+  min-width:0;
+}
 </style>
   <script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
@@ -1545,14 +1581,14 @@ input[type="date"] {
 <div id="actionsContainer" class="form-section">
   <h4>⚙️ Wykonane czynności</h4>
   <div id="actionsBox"
-       style="max-height:250px;overflow:auto;">
+       style="max-height:250px;overflow-y:auto;">
   </div>
 </div>
 
 <div id="partsContainer" class="form-section">
   <h4>🔧 Wymienione podzespoły</h4>
   <div id="partsBox"
-       style="max-height:250px;overflow:auto;">
+       style="max-height:250px;overflow-y:auto;">
   </div>
 </div>
 
@@ -2668,19 +2704,18 @@ const partsBox = document.getElementById("partsBox");
 partsBox.innerHTML = serviceParts.map(p => `
   <div>
 
-    <label>
-      
+   
+<label>
+  <span>${p.name}</span>
 
-<input 
-  type="checkbox"
-  value="${p.name}"
-  data-serial="${p.serial_number}"
-  onchange="toggleSerialInput(this, '${p.serial_number}')"
->
+  <input
+    type="checkbox"
+    value="${p.name}"
+    data-serial="${p.serial_number}"
+    onchange="toggleSerialInput(this, '${p.serial_number}')"
+  >
+</label>
 
-
-      ${p.name}
-    </label>
 
     <div class="serialBox" style="display:none;">
       <input class="serialInput" placeholder="Numer seryjny">
@@ -2747,19 +2782,17 @@ techSelect.innerHTML = technicians
 partsBox.innerHTML = serviceParts.map(p => `
   <div>
 
-    <label>
-      
+<label>
+  <span>${p.name}</span>
 
-<input 
-  type="checkbox"
-  value="${p.name}"
-  data-serial="${p.serial_number}"
-  onchange="toggleSerialInput(this, '${p.serial_number}')"
->
+  <input
+    type="checkbox"
+    value="${p.name}"
+    data-serial="${p.serial_number}"
+    onchange="toggleSerialInput(this, '${p.serial_number}')"
+  >
+</label>
 
-
-      ${p.name}
-    </label>
 
     <div class="serialBox" style="display:none;">
       <input class="serialInput" placeholder="Numer seryjny">
@@ -2834,8 +2867,13 @@ const interventionType =
     ? `${window.currentUser.first_name || ""} ${window.currentUser.last_name || ""}`.trim()
     : "unknown";
 
-  const actions = [...document.querySelectorAll("#actionsBox input:checked")]
-    .map(el => el.value);
+ 
+const actions = [
+  ...document.querySelectorAll(
+    '#actionsBox input[type="checkbox"]:checked'
+  )
+].map(el => el.value);
+
 
 const parts = [];
 const partsWithSerial = [];
