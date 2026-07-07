@@ -2819,10 +2819,15 @@ document
     return;
   }
 
-  if(actions.length === 0){
-    alert("❌ Wybierz czynności");
-    return;
-  }
+  
+if(
+  interventionType === "parkomat" &&
+  actions.length === 0
+){
+  alert("❌ Wybierz czynności");
+  return;
+}
+
 if(interventionType === "ogolna"){
 
   const category =
@@ -5249,8 +5254,10 @@ function populateMapEventFilter(){
   document.getElementById("partsContainer").style.display =
     isGeneral ? "none" : "block";
 
-  document.getElementById("actionsContainer").style.display =
-    "block";
+  
+document.getElementById("actionsContainer").style.display =
+    isGeneral ? "none" : "block";
+
 }
   function populateGeneralCategories(){
 
