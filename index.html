@@ -1496,6 +1496,7 @@ input[type="date"] {
   </textarea>
 
 </div>
+  <div id="parkomatBox">
 <input
   type="text" 
   id="deviceSearchInput"
@@ -1505,12 +1506,27 @@ input[type="date"] {
 >
 
 <select id="deviceSelect" style="max-height:150px;overflow:auto;"></select>
-
+</div>
 <select id="techSelect" style="display:none;"></select>
 
-<div id="actionsBox" style="max-height:250px;overflow:auto;"></div>
-  <h4>⚙️ Wymienione podzespoły</h4>
-<div id="partsBox" style="max-height:250px;overflow:auto;"></div>
+
+<div id="actionsContainer">
+
+  <h4>⚙️ Wykonane czynności</h4>
+
+  <div id="actionsBox" style="max-height:250px;overflow:auto;"></div>
+
+</div>
+
+  
+<div id="partsContainer">
+
+  <h4>🔧 Wymienione podzespoły</h4>
+
+  <div id="partsBox" style="max-height:250px;overflow:auto;"></div>
+
+</div>
+
 
 <button onclick="submitService()" style="
   background:#16a34a;color:white;padding:10px;border:none;border-radius:8px;">
@@ -5219,22 +5235,22 @@ function populateMapEventFilter(){
 
   generalCategories = data || [];
 }
-  function toggleInterventionType(){
-
-  const type =
-    document.getElementById("interventionType").value;
+ function toggleInterventionType(){
 
   const isGeneral =
-    type === "ogolna";
+    document.getElementById("interventionType").value === "ogolna";
 
   document.getElementById("generalBox").style.display =
     isGeneral ? "block" : "none";
 
-  document.getElementById("deviceSearchInput").style.display =
+  document.getElementById("parkomatBox").style.display =
     isGeneral ? "none" : "block";
 
-  document.getElementById("deviceSelect").style.display =
+  document.getElementById("partsContainer").style.display =
     isGeneral ? "none" : "block";
+
+  document.getElementById("actionsContainer").style.display =
+    "block";
 }
   function populateGeneralCategories(){
 
