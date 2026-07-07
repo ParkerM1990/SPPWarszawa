@@ -1456,7 +1456,46 @@ input[type="date"] {
 
 
 <h3>🔧 Interwencja Serwisowa</h3>
+<select id="interventionType"
+        onchange="toggleInterventionType()">
 
+  <option value="parkomat">
+    🅿️ Interwencja parkomatu
+  </option>
+
+  <option value="ogolna">
+    🧰 Interwencja ogólna
+  </option>
+
+</select>
+
+<div id="generalBox" style="display:none;">
+
+  <select id="generalCategory"
+          onchange="updateQuantityField()">
+  </select>
+
+  <div id="quantityContainer"
+       style="display:none;">
+
+    <input
+      type="number"
+      id="generalQuantity"
+      placeholder="Ilość">
+  </div>
+
+  <textarea
+    id="generalNote"
+    placeholder="Notatka"
+    style="
+      width:100%;
+      min-height:80px;
+      border-radius:8px;
+      padding:8px;
+    ">
+  </textarea>
+
+</div>
 <input
   type="text" 
   id="deviceSearchInput"
@@ -2029,9 +2068,7 @@ if(insertError){
   alert("❌ " + insertError.message);
   return;
 }
-
-
-    alert("✅ Użytkownik utworzony");
+alert("✅ Użytkownik utworzony");
     
 // ✅ reset pól
 document.getElementById("newFirstName").value = "";
@@ -2051,7 +2088,7 @@ document.querySelectorAll(".nodeCheck").forEach(el => el.checked = false);
   await loadUsers();
   
 
-alert("✅ Użytkownik utworzony");
+
 
 }
 
@@ -2086,7 +2123,7 @@ let interwencje = [];
 let currentService = null;
 let deviceOptionsCache = [];
 let serviceParts = [];
-
+let generalCategories = [];
 /* ===== MAPA ===== */
 
 let map = L.map('map', {
@@ -2680,7 +2717,12 @@ partsBox.innerHTML = serviceParts.map(p => `
       ${a}
     </label>
   `).join('');
+populateGeneralCategories();
 
+document.getElementById("interventionType").value =
+  "parkomat";
+
+toggleInterventionType();
   document.getElementById("serviceModal").style.display = "flex";
 }
 function renderDeviceOptions(list) {
@@ -2715,6 +2757,9 @@ function closeModal(){
 //const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyR-RNSAU5ePpx0NpWRoNHMfvANKbxLBFU7a8xmAAaL5s9mHdE774Yxcbriqof4PT6NNw/exec";
 
 async function submitService(){
+
+const interventionType =
+  document.getElementById("interventionType").value;
 
   const user = window.currentUser
     ? `${window.currentUser.first_name || ""} ${window.currentUser.last_name || ""}`.trim()
@@ -2762,19 +2807,33 @@ document
     alert("❌ Wybierz czynności");
     return;
   }
+if(interventionType === "ogolna"){
 
+  const category =
+    document.getElementById("generalCategory").value;
+
+  if(!category){
+    alert("❌ Wybierz kategorię");
+    return;
+  }
+}
   let {key, event} = currentService;
+
+let p = null;
+
+if(interventionType === "parkomat"){
 
   if(!key){
     key = document.getElementById("deviceSelect").value;
   }
 
-  const p = allParkomaty[key];
+  p = allParkomaty[key];
 
   if(!p){
     alert("❌ Nie znaleziono parkomatu");
     return;
   }
+}
 
   const now = new Date().toISOString();
   const d = parseUTC(event.date);
@@ -2785,28 +2844,70 @@ document
     const { data: interData, error } = await supabaseClient
   .from("interwencje2")
   .insert([{
-    device_id: p.id,
-    structure: p.structure,
-    location: p.location,
-    event_name: event.name,
+    
+device_id:
+    p?.id || null,
+
+  structure:
+    p?.structure || null,
+
+  location:
+    p?.location || null,
+
+  intervention_type:
+    interventionType,
+
+  category:
+    interventionType === "ogolna"
+      ? generalCategories.find(
+          c => c.id ==
+          document.getElementById(
+            "generalCategory"
+          ).value
+        )?.name
+      : null,
+
+  quantity:
+    interventionType === "ogolna"
+      ? Number(
+          document.getElementById(
+            "generalQuantity"
+          ).value || 0
+        )
+      : null,
+
+  note:
+    interventionType === "ogolna"
+      ? document.getElementById(
+          "generalNote"
+        ).value
+      : null,
+
+  event_name:
+    interventionType === "ogolna"
+      ? "Interwencja ogólna"
+      : event.name,
+
     start_date: d ? d.toISOString() : now,
     end_date: now,
     user_id: window.currentUser.id,
     user_email: user,
     actions: actions,
     parts: parts,
-    hardware: event.hardware
+    hardware: event?.hardware || null
   }])
   .select()
   .single();
 if(partsWithSerial.length){
 
-  const rows = partsWithSerial.map(pw => ({
-    interwencja_id: interData.id,
-    device_id: p.id,
-    part_name: pw.part_name,
-    serial_number: pw.serial_number
-  }));
+  
+const rows = partsWithSerial.map(pw => ({
+  interwencja_id: interData.id,
+  device_id: p?.id || null,
+  part_name: pw.part_name,
+  serial_number: pw.serial_number
+}));
+
 
   await supabaseClient
     .from("interwencje_parts")
@@ -3516,38 +3617,42 @@ if(Math.abs(obj.lat) > 90 || Math.abs(obj.lng) > 180){
 }
 
 
-  let error;
-
-  
+let error = null;
 
 if (editingParkomatKey) {
 
-  const [origId] = editingParkomatKey.split("|");
+  
+const [origId, origStructure] =
+  editingParkomatKey.split("|");
 
-  const { data, error } = await supabaseClient
-    .from("parkomaty")
-    .update(obj)
-    .eq("id", origId)
-    .select();
-
-  console.log("UPDATE RESULT:", data);
-
-}
+const result = await supabaseClient
+  .from("parkomaty")
+  .update(obj)
+  .eq("id", origId)
+  .eq("structure", origStructure)
+  .select();
 
 
-else{
-  const { error } = await supabaseClient
+  error = result.error;
+
+  console.log("UPDATE RESULT:", result.data);
+
+} else {
+
+  const result = await supabaseClient
     .from("parkomaty")
     .insert([obj]);
+
+  error = result.error;
 }
 
-  if(error){
-    console.error(error);
-    alert("❌ Błąd zapisu");
-    return;
-  }
+if(error){
+  console.error(error);
+  alert("❌ Błąd zapisu");
+  return;
+}
 
-  alert("✅ Zapisano");
+alert("✅ Zapisano");
 
   closeParkomatModal();
 
@@ -3602,10 +3707,20 @@ function renderInterwencje(){
 
     const isAdmin = window.currentUser?.role === "admin";
 
-    const key = makeKey(i.device_id, i.structure);
-    const p = allParkomaty[key];
+    let p = null;
 
-    if(!p) return;
+if(i.intervention_type !== "ogolna"){
+
+  const key = makeKey(
+    i.device_id,
+    i.structure
+  );
+
+  p = allParkomaty[key];
+
+  if(!p) return;
+}
+
 
     if(terminal && !(i.device_id || "").toLowerCase().includes(terminal)) return;
     if(isAdmin && userInput && i.user_email !== userInput) return;
@@ -3654,11 +3769,35 @@ function renderInterwencje(){
       }
     });
 
+const isGeneral =
+  i.intervention_type === "ogolna";
+
     html += `
     <div class="terminal-box">
 
-      <b>Parkomat ${i.device_id}</b><br>
-      ${i.location}<br><br>
+      ${isGeneral
+  ? `
+    <b>🧰 ${i.category}</b><br>
+
+    ${
+      i.quantity
+      ? `📦 Ilość: ${i.quantity}<br>`
+      : ""
+    }
+
+    ${
+      i.note
+      ? `📝 ${i.note}<br>`
+      : ""
+    }
+
+    <br>
+  `
+  : `
+    <b>Parkomat ${i.device_id}</b><br>
+    ${i.location}<br><br>
+  `
+}
 
       <b>${i.event_name}</b><br>
 
@@ -3725,7 +3864,24 @@ Do: ${formatDatePL(i.end_date)}
     }
 
     stats[user].total++;
+    if(i.intervention_type === "ogolna"){
 
+  if(!stats[user].general){
+    stats[user].general = {};
+  }
+
+  const cat =
+    i.category || "Inne";
+
+  stats[user].general[cat] =
+    (stats[user].general[cat] || 0)
+    +
+    (
+      Number(i.quantity) > 0
+        ? Number(i.quantity)
+        : 1
+    );
+}
     // ✅ ACTIONS (czynności)
     const actions = Array.isArray(i.actions)
       ? i.actions
@@ -3790,7 +3946,18 @@ Do: ${formatDatePL(i.end_date)}
             .map(([k,v])=>`<li>${k}: ${v}</li>`)
             .join("") || "<li>Brak</li>"}
         </ul>
+      <b>🧰 Interwencje ogólne:</b>
 
+<ul>
+${
+Object.entries(
+  s.general || {}
+)
+.map(([k,v]) =>
+  `<li>${k}: ${v}</li>`
+).join("")
+}
+</ul>
       </div>
     `;
   });
@@ -3923,6 +4090,7 @@ async function init(){
   await loadUserLocations();  // ✅ po users
   await loadServiceActions();
   await loadParts();
+  await loadGeneralCategories();
   await loadTechnicians();
 
 
@@ -5035,6 +5203,80 @@ function populateMapEventFilter(){
   // ✅ zachowaj wybrany filtr jeśli istnieje
   if([...select.options].some(o => o.value === current)){
     select.value = current;
+  }
+}
+  async function loadGeneralCategories(){
+
+  const { data, error } = await supabaseClient
+    .from("general_intervention_categories")
+    .select("*")
+    .order("name");
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  generalCategories = data || [];
+}
+  function toggleInterventionType(){
+
+  const type =
+    document.getElementById("interventionType").value;
+
+  const isGeneral =
+    type === "ogolna";
+
+  document.getElementById("generalBox").style.display =
+    isGeneral ? "block" : "none";
+
+  document.getElementById("deviceSearchInput").style.display =
+    isGeneral ? "none" : "block";
+
+  document.getElementById("deviceSelect").style.display =
+    isGeneral ? "none" : "block";
+}
+  function populateGeneralCategories(){
+
+  const select =
+    document.getElementById("generalCategory");
+
+  select.innerHTML =
+    generalCategories.map(c => `
+      <option value="${c.id}">
+        ${c.name}
+      </option>
+    `).join('');
+
+  updateQuantityField();
+}
+  function updateQuantityField(){
+
+  const id =
+    Number(
+      document.getElementById("generalCategory").value
+    );
+
+  const category =
+    generalCategories.find(c => c.id === id);
+
+  const box =
+    document.getElementById("quantityContainer");
+
+  const input =
+    document.getElementById("generalQuantity");
+
+  if(category?.requires_quantity){
+
+    box.style.display = "block";
+
+    input.placeholder =
+      category.quantity_label || "Ilość";
+  }
+  else{
+
+    box.style.display = "none";
+    input.value = "";
   }
 }
 </script>
