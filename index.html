@@ -808,27 +808,28 @@ input[type="date"] {
 }
 /* 🔥 DUŻE checkboxy */
 #actionsBox input[type="checkbox"],
-#partsBox input[type="checkbox"] {
-  transform: scale(1.5);
-  margin-right: 10px;
+#partsBox input[type="checkbox"]{
+  transform: scale(1.3);
+  flex-shrink: 0;
 }
 
-
-
-#actionsBox,
-#partsBox{
+/* pojedynczy wiersz */
+#actionsBox label,
+#partsBox label{
   display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-
-#partsBox .serialBox{
-  margin:6px 0 12px 20px;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  padding:10px;
+  background:#111827;
+  border-radius:10px;
+  cursor:pointer;
+  margin-bottom:6px;
 }
 
 /* hover */
-
-#actionsBox label:hover{
+#actionsBox label:hover,
+#partsBox label:hover{
   background:#1f2937;
 }
 
@@ -874,31 +875,6 @@ input[type="date"] {
 .form-section h4{
   margin:0 0 10px 0;
   color:#cbd5e1;
-}
-  #actionsBox label,
-#partsBox label{
-  display:flex !important;
-  justify-content:space-between !important;
-  align-items:center !important;
-  width:100% !important;
-  gap:10px;
-  padding:4px 0;
-}
-
-#actionsBox label span,
-#partsBox label span{
-  flex:1;
-}
-
-#actionsBox input[type=checkbox],
-#partsBox input[type=checkbox]{
-  margin:0 !important;
-  flex-shrink:0;
-}
-
-#actionsBox,
-#partsBox{
-  overflow-x:hidden !important;
 }
   #serviceModal *{
   max-width:100%;
@@ -2706,14 +2682,13 @@ partsBox.innerHTML = serviceParts.map(p => `
 
    
 <label>
-  <span>${p.name}</span>
-
   <input
     type="checkbox"
     value="${p.name}"
     data-serial="${p.serial_number}"
     onchange="toggleSerialInput(this, '${p.serial_number}')"
   >
+  <span>${p.name}</span>
 </label>
 
 
@@ -2729,14 +2704,9 @@ partsBox.innerHTML = serviceParts.map(p => `
 
   
 box.innerHTML = serviceActions.map(a => `
-  <label style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    width:100%;
-  ">
+  <label>
+  <input type="checkbox" value="${a}">
     <span>${a}</span>
-    <input type="checkbox" value="${a}">
   </label>
 `).join('');
 
@@ -2804,14 +2774,9 @@ partsBox.innerHTML = serviceParts.map(p => `
 
 
   box.innerHTML = serviceActions.map(a => `
-  <label style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    width:100%;
-  ">
+  <label>
+  <input type="checkbox" value="${a}">
     <span>${a}</span>
-    <input type="checkbox" value="${a}">
   </label>
 `).join('');
 populateGeneralCategories();
