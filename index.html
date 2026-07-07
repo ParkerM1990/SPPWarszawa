@@ -849,8 +849,31 @@ input[type="date"] {
 .switch-btn.active {
   background: #1d4ed8;   /* 🔵 aktywny */
 }
+.form-section{
+  background:#111827;
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:10px;
+}
 
+.form-section h4{
+  margin:0 0 8px 0;
+}
+.form-section select,
+.form-section input,
+.form-section textarea{
+  width:100%;
+  background:#020617;
+  color:white;
+  border:1px solid #374151;
+  border-radius:8px;
+  padding:10px;
+}
 
+.form-section h4{
+  margin:0 0 10px 0;
+  color:#cbd5e1;
+}
 </style>
   <script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
@@ -1456,86 +1479,98 @@ input[type="date"] {
 
 
 <h3>🔧 Interwencja Serwisowa</h3>
+
 <select id="interventionType"
         onchange="toggleInterventionType()">
-
-  <option value="parkomat">
-    🅿️ Interwencja parkomatu
-  </option>
-
-  <option value="ogolna">
-    🧰 Interwencja ogólna
-  </option>
-
+  <option value="parkomat">🅿️ Interwencja parkomatu</option>
+  <option value="ogolna">🧰 Interwencja ogólna</option>
 </select>
 
 <div id="generalBox" style="display:none;">
 
-  <select id="generalCategory"
-          onchange="updateQuantityField()">
-  </select>
+  <div class="form-section">
+    <h4>🧰 Kategoria interwencji</h4>
+    <select id="generalCategory"
+            onchange="updateQuantityField()">
+    </select>
+  </div>
 
   <div id="quantityContainer"
+       class="form-section"
        style="display:none;">
+    <h4>📦 Ilość</h4>
 
     <input
       type="number"
-      id="generalQuantity"
-      placeholder="Ilość">
+      id="generalQuantity">
   </div>
 
-  <textarea
-    id="generalNote"
-    placeholder="Notatka"
-    style="
-      width:100%;
-      min-height:80px;
-      border-radius:8px;
-      padding:8px;
-    ">
-  </textarea>
+  <div class="form-section">
+    <h4>📝 Opis / Notatka</h4>
+
+    <textarea
+      id="generalNote"
+      placeholder="Wpisz opis wykonanej czynności..."
+      style="
+        width:100%;
+        min-height:120px;
+        border-radius:8px;
+        padding:8px;
+        background:#020617;
+        color:white;
+        border:1px solid #1f2937;
+      ">
+    </textarea>
+  </div>
 
 </div>
-  <div id="parkomatBox">
-<input
-  type="text" 
-  id="deviceSearchInput"
-  placeholder="🔎 Nr lub adres parkomatu..."
-  oninput="filterDevicesForSelect()"
-  style="padding:8px;border-radius:8px;"
->
 
-<select id="deviceSelect" style="max-height:150px;overflow:auto;"></select>
+<div id="parkomatBox">
+
+  <div class="form-section">
+    <h4>🅿️ Parkomat</h4>
+
+    <input
+      type="text"
+      id="deviceSearchInput"
+      placeholder="🔎 Nr lub adres parkomatu..."
+      oninput="filterDevicesForSelect()">
+
+    <select id="deviceSelect"></select>
+  </div>
+
 </div>
-<select id="techSelect" style="display:none;"></select>
 
-
-<div id="actionsContainer">
-
+<div id="actionsContainer" class="form-section">
   <h4>⚙️ Wykonane czynności</h4>
-
-  <div id="actionsBox" style="max-height:250px;overflow:auto;"></div>
-
+  <div id="actionsBox"
+       style="max-height:250px;overflow:auto;">
+  </div>
 </div>
 
-  
-<div id="partsContainer">
-
+<div id="partsContainer" class="form-section">
   <h4>🔧 Wymienione podzespoły</h4>
-
-  <div id="partsBox" style="max-height:250px;overflow:auto;"></div>
-
+  <div id="partsBox"
+       style="max-height:250px;overflow:auto;">
+  </div>
 </div>
-
 
 <button onclick="submitService()" style="
-  background:#16a34a;color:white;padding:10px;border:none;border-radius:8px;">
+  background:#16a34a;
+  color:white;
+  padding:10px;
+  border:none;
+  border-radius:8px;">
   ✅ Zapisz
 </button>
 
 <button onclick="closeModal()" style="
-  background:#374151;color:white;padding:8px;border:none;border-radius:8px;">
-  Anuluj
+  background:#374151;
+  color:white;
+  padding:8px;
+  border:none;
+  border-radius:8px;">
+  ❌ Anuluj
 </button>
 
 </div>
