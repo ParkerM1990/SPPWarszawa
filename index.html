@@ -827,10 +827,11 @@ input[type="date"] {
 }
 
 /* hover */
-#actionsBox label:hover,
- {
-  background: #1f2937;
+
+#actionsBox label:hover{
+  background:#1f2937;
 }
+
 .switch-btn {
   background: #374151;   /* domyślny (jak Lista) */
   color: white;
@@ -2691,12 +2692,14 @@ partsBox.innerHTML = serviceParts.map(p => `
 
 
 
-  box.innerHTML = serviceActions.map(a => `
-    <label style="display:flex;gap:6px;">
-      <input type="checkbox" value="${a}">
-      ${a}
-    </label>
-  `).join('');
+  
+box.innerHTML = serviceActions.map(a => `
+  <label class="actionRow">
+    <span>${a}</span>
+    <input type="checkbox" value="${a}">
+  </label>
+`).join('');
+
 
   document.getElementById("serviceModal").style.display = "flex";
 }
